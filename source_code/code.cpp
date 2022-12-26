@@ -202,7 +202,6 @@ void mainLoop() {
             translations[index++] = translation;
         }
     }
-    
     do {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -257,7 +256,6 @@ void mainLoop() {
 
         // draw
         glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
-        // glDrawArrays(GL_TRIANGLES, 0, 2 * 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
