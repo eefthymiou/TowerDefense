@@ -41,15 +41,20 @@ GLuint shaderProgram;
 GLuint MVPLocation;
 GLuint textureSampler;
 GLuint texture;
+GLuint quadtexture;
 GLuint movingTexture;
 GLuint movingTextureSampler;
 GLuint displacementTexture;
 GLuint displacementTextureSampler;
 GLuint timeUniform;
 GLuint VAO;
+GLuint quadVAO;
+GLuint quadVerticiesVBO;
 GLuint VerticiesVBO, UVVBO;
+GLuint quadUVVBO;
 std::vector<vec3> Vertices, Normals;
 std::vector<vec2> UVs;
+std::vector<vec2> quadUVs;
 
 GLuint useTextureLocation;
 
@@ -101,20 +106,72 @@ void createContext() {
     // uvs VBO
     glGenBuffers(1, &UVVBO);
     glBindBuffer(GL_ARRAY_BUFFER, UVVBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),
-        &UVs[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),&UVs[0], GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+
+    //grid 
+    const GLfloat quadVertices[] = {
+        // positions     
+        -0.5f,  0.5f, 0.00f,
+        0.5f, 0.5f, 0.00f,
+        -0.5f, -0.5f, 0.00f,
+
+        0.5f,  0.5f, 0.00f,
+        0.5f, -0.5f,  0.00f, 
+        -0.5f,  -0.5f, 0.00f	 		
+    };
+
+    const GLfloat quadUVs[] = {
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        0.0f, 0.0f,
+
+        1.0f, 1.0f,
+        1.0f, 0.0f,
+        0.0f, 0.0f
+    };
+
+    // VAO
+    glGenVertexArrays(1, &quadVAO);
+    glBindVertexArray(quadVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &quadVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    // load texture for quad
+    quadtexture = loadSOIL("../Textures/floor_grass.jpg");
+    // quadtexture = loadBMP("../BML_files/lava.bmp");
+
+    // uvs VBO
+    glGenBuffers(1, &quadUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec2),&quadUVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 }
 
 void free() {
     glDeleteBuffers(1, &VerticiesVBO);
     glDeleteBuffers(1, &UVVBO);
     glDeleteTextures(1, &texture);
-    glDeleteTextures(1, &movingTexture);
-    glDeleteTextures(1, &displacementTexture);
     glDeleteVertexArrays(1, &VAO);
+
+    // quad
+    glDeleteBuffers(1, &quadVerticiesVBO);
+    glDeleteBuffers(1, &quadUVVBO);
+    glDeleteTextures(1, &quadtexture);
+    glDeleteVertexArrays(1, &quadVAO);
+
+
     glDeleteProgram(shaderProgram);
     glfwTerminate();
 }
@@ -122,6 +179,7 @@ void free() {
 void mainLoop() {
     do {
         mat4 MVP,projectionMatrix,viewMatrix,modelMatrix;
+        int width, height;
 
         glUseProgram(shaderProgram);
 
@@ -144,12 +202,31 @@ void mainLoop() {
         // Bind our texture in Texture Unit 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-        // Set our "textureSampler" sampler to use Texture Unit 0
         glUniform1i(textureSampler, 0);        
 
         // draw
         glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
         
+        
+        //quad
+        
+        glBindVertexArray(quadVAO);
+        size = 10.0f;
+        mat4 quadScaling = glm::scale(mat4(), vec3(size,size,size));
+        mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
+        mat4 quadModelMatrix = mat4(1) * quadScaling * quadRotate;
+        mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
+
+        // Bind our texture in Texture Unit 1
+       
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, quadtexture);
+        glUniform1i(textureSampler, 1);   
+
+        // draw
+        glDrawArrays(GL_TRIANGLES, 0, 2 * 3);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
         
