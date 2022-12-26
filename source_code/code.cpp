@@ -12,6 +12,7 @@
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 // Shader loading utilities and other
 #include <common/shader.h>
@@ -38,8 +39,12 @@ GLFWwindow* window;
 Camera* camera;
 Drawable* model;
 GLuint shaderProgram;
+GLuint gridshader;
 GLuint MVPLocation;
+GLuint gMVPLocation;
+GLuint translationsLocation;
 GLuint textureSampler;
+GLuint gtextureSampler;
 GLuint texture;
 GLuint quadtexture;
 GLuint movingTexture;
@@ -68,7 +73,8 @@ void createContext() {
 
     // Get a pointer location to model matrix in the vertex shader
     MVPLocation = glGetUniformLocation(shaderProgram, "MVP");
-    
+    textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
+
     // Building 1
     // model = new Drawable("../OBJ_FILES/cube.obj");
     // loadOBJ("../Building_2/cottage_obj/new.obj",
@@ -96,9 +102,6 @@ void createContext() {
     glEnableVertexAttribArray(0);
 
 
-    // Get a handle for our "textureSampler" uniform
-    textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
-
     // use texture
     // texture = loadSOIL("../Building_2/cottage_textures/cottage_textures/cottage_diffuse.png");
     texture = loadSOIL("../Building_3/Farmhouse Texture.jpg");
@@ -111,6 +114,12 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+
+    gridshader = loadShaders("grid/grid.vertexshader", "grid/grid.fragmentshader");
+
+    gMVPLocation = glGetUniformLocation(gridshader, "MVP");
+    translationsLocation = glGetUniformLocation(gridshader, "offsets");
+    gtextureSampler = glGetUniformLocation(gridshader, "textureSampler");
 
     //grid 
     const GLfloat quadVertices[] = {
@@ -145,9 +154,11 @@ void createContext() {
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(0);
 
+
     // load texture for quad
-    quadtexture = loadSOIL("../Textures/floor_grass.jpg");
+    // quadtexture = loadSOIL("../Textures/floor_grass.jpg");
     // quadtexture = loadBMP("../BML_files/lava.bmp");
+    quadtexture = loadSOIL("../Textures/1.png");
 
     // uvs VBO
     glGenBuffers(1, &quadUVVBO);
@@ -173,29 +184,47 @@ void free() {
 
 
     glDeleteProgram(shaderProgram);
+    glDeleteProgram(gridshader);
     glfwTerminate();
 }
 
 void mainLoop() {
+    glm::vec3 translations[101];
+    int index = 0;
+    float offset = 5.0f;
+    for(int z = -10; z < 10; z += 2){
+        for(int x = -10; x < 10; x += 2){
+            glm::vec3 translation;
+            translation.x = (float)x / 2.0f + offset ;
+            translation.z = (float)z / 2.0f + offset ;
+            translation.y = 0;
+            std::cout << index << glm::to_string(translation) << std::endl;
+            translations[index++] = translation;
+        }
+    }
+    
     do {
-        mat4 MVP,projectionMatrix,viewMatrix,modelMatrix;
-        int width, height;
-
-        glUseProgram(shaderProgram);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        // Bind model VAO
-        glBindVertexArray(VAO);
+
+        mat4 projectionMatrix,viewMatrix,modelMatrix;
+        int width, height;
 
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
-        modelMatrix = glm::mat4(1.0);
+
+
+        // use shaderProgram
+        glUseProgram(shaderProgram);
+        
+        // Bind model VAO
+        glBindVertexArray(VAO);
 
         float size = 0.1f;
-        mat4 cubeScaling = glm::scale(mat4(), vec3(size,size,size));
-        mat4 modelModelMatrix = mat4(1) * cubeScaling;
+        mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
+        mat4 Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,.0f));
+        mat4 Translate = glm::translate(mat4(), vec3(2.0f,0.0f,1.0f));
+        mat4 modelModelMatrix = Translate * Scaling * Rotate;
         mat4 modelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &modelMVP[0][0]);
 
@@ -207,25 +236,28 @@ void mainLoop() {
         // draw
         glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
         
-        
-        //quad
-        
+        // use grid shader
+        glUseProgram(gridshader);
+
         glBindVertexArray(quadVAO);
-        size = 10.0f;
-        mat4 quadScaling = glm::scale(mat4(), vec3(size,size,size));
+
+        size = 2.0f;
+        mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
         mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
         mat4 quadModelMatrix = mat4(1) * quadScaling * quadRotate;
         mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
-        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
+        glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
 
         // Bind our texture in Texture Unit 1
-       
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, quadtexture);
-        glUniform1i(textureSampler, 1);   
+        glUniform1i(gtextureSampler, 1);   
+
+        glUniform3fv(translationsLocation, 100, &translations[0].z); 
 
         // draw
-        glDrawArrays(GL_TRIANGLES, 0, 2 * 3);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
+        // glDrawArrays(GL_TRIANGLES, 0, 2 * 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -323,6 +355,7 @@ int main(void) {
         createContext();
         mainLoop();
         free();
+
     } catch (exception& ex) {
         cout << ex.what() << endl;
         getchar();
