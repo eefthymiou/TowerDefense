@@ -28,21 +28,21 @@ GLuint loadBMP(const char* imagePath) {
     // If less than 54 bytes are read, problem
     if (fread(header, 1, 54, file) != 54) {
         fclose(file);
-        throw runtime_error(" 1 Not a correct BMP file");
+        throw runtime_error("Not a correct BMP file");
     }
     // A BMP files always begins with "BM"
     if (header[0] != 'B' || header[1] != 'M') {
         fclose(file);
-        throw runtime_error("2 Not a correct BMP file");
+        throw runtime_error("Not a correct BMP file");
     }
     // Make sure this is a 24bpp file
     if (*(int*)&(header[0x1E]) != 0) {
         fclose(file);
-        throw runtime_error("3 Not a correct BMP file");
+        throw runtime_error("Not a correct BMP file");
     }
     if (*(int*)&(header[0x1C]) != 24) {
         fclose(file);
-        throw runtime_error("4 Not a correct BMP file");
+        throw runtime_error("Not a correct BMP file");
     }
 
     // Read the information about the image
