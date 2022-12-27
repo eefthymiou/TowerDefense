@@ -45,7 +45,7 @@ GLuint gMVPLocation;
 GLuint translationsLocation;
 GLuint textureSampler;
 GLuint gtextureSampler;
-GLuint texture;
+GLuint texture,ninjatexture;
 GLuint quadtexture;
 GLuint movingTexture;
 GLuint movingTextureSampler;
@@ -53,12 +53,12 @@ GLuint displacementTexture;
 GLuint displacementTextureSampler;
 GLuint timeUniform;
 GLuint VAO;
-GLuint quadVAO;
-GLuint quadVerticiesVBO;
+GLuint quadVAO, ninjaVAO;
+GLuint quadVerticiesVBO, ninjaVerticiesVBO, ninjaUVVBO;
 GLuint VerticiesVBO, UVVBO;
 GLuint quadUVVBO;
-std::vector<vec3> Vertices, Normals;
-std::vector<vec2> UVs;
+std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals;
+std::vector<vec2> UVs, ninjaUVs;
 std::vector<vec2> quadUVs;
 
 GLuint useTextureLocation;
@@ -110,6 +110,34 @@ void createContext() {
     glGenBuffers(1, &UVVBO);
     glBindBuffer(GL_ARRAY_BUFFER, UVVBO);
     glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),&UVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    loadOBJ("../Models/Mini_Ninja_triangles.obj",
+        ninjaVertices, 
+        ninjaUVs,
+        ninjaNormals);
+
+     // VAO
+    glGenVertexArrays(1, &ninjaVAO);
+    glBindVertexArray(ninjaVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &ninjaVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, ninjaVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, ninjaVertices.size() * sizeof(glm::vec3),
+                 &ninjaVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    // use texture
+    ninjatexture = loadSOIL("../Models/Ninja_T.png");
+    
+    // uvs VBO
+    glGenBuffers(1, &ninjaUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, ninjaUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, ninjaUVs.size() * sizeof(glm::vec2),&ninjaUVs[0], GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -168,6 +196,8 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+
+
 }
 
 void free() {
@@ -182,6 +212,11 @@ void free() {
     glDeleteTextures(1, &quadtexture);
     glDeleteVertexArrays(1, &quadVAO);
 
+    // ninja
+    glDeleteBuffers(1, &ninjaVerticiesVBO);
+    glDeleteBuffers(1, &ninjaUVVBO);
+    glDeleteTextures(1, &ninjatexture);
+    glDeleteVertexArrays(1, &ninjaVAO);
 
     glDeleteProgram(shaderProgram);
     glDeleteProgram(gridshader);
@@ -198,7 +233,7 @@ void mainLoop() {
             translation.x = (float)x / 2.0f + offset ;
             translation.z = (float)z / 2.0f + offset ;
             translation.y = 0;
-            std::cout << index << glm::to_string(translation) << std::endl;
+            // std::cout << index << glm::to_string(translation) << std::endl;
             translations[index++] = translation;
         }
     }
@@ -230,10 +265,29 @@ void mainLoop() {
         // Bind our texture in Texture Unit 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(textureSampler, 0);        
-
+        glUniform1i(textureSampler, 0); 
+        
         // draw
         glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
+        
+
+        // ninja 
+        glBindVertexArray(ninjaVAO);
+        Translate = glm::translate(mat4(), vec3(100.0f,0.0f,100.0f));
+        size = 0.05f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        
+        // mat4 Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,.0f));
+        modelModelMatrix = Scaling*Translate;
+        mat4 ninjamodelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ninjamodelMVP[0][0]);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, ninjatexture);
+        glUniform1i(textureSampler, 1);
+
+        // draw
+        glDrawArrays(GL_TRIANGLES, 0, ninjaVertices.size());
         
         // use grid shader
         glUseProgram(gridshader);
@@ -248,9 +302,9 @@ void mainLoop() {
         glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
 
         // Bind our texture in Texture Unit 1
-        glActiveTexture(GL_TEXTURE1);
+        glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, quadtexture);
-        glUniform1i(gtextureSampler, 1);   
+        glUniform1i(gtextureSampler, 2);   
 
         glUniform3fv(translationsLocation, 100, &translations[0].z); 
 

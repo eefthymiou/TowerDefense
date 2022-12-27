@@ -3,13 +3,11 @@
 
 #include <glm/glm.hpp>
 
-class Camera
-{
+class Camera {
 public:
     GLFWwindow* window;
     glm::mat4 viewMatrix;
     glm::mat4 projectionMatrix;
-
     // Initial position : on +Z
     glm::vec3 position;
     // Initial horizontal angle : toward -Z
@@ -18,15 +16,12 @@ public:
     float verticalAngle;
     // Field of View
     float FoV;
-
     float speed; // units / second
     float mouseSpeed;
     float fovSpeed;
 
     Camera(GLFWwindow* window);
-
     void update();
-    glm::vec3 info();
 };
 
 #endif
