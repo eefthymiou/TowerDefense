@@ -114,7 +114,8 @@ void loadVTP(
     indices.clear();
     const char* method = "PolygonalMesh::loadVtpFile()";
     XMLDocument vtp;
-    assert(vtp.LoadFile(path.c_str()) == 0);
+    auto res = vtp.LoadFile(path.c_str());
+    assert(res == 0);
 
     XMLElement* root = vtp.FirstChildElement("VTKFile");
     assert(root != nullptr);
