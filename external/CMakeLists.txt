@@ -11,6 +11,13 @@ add_definitions(
     -D_CRT_SECURE_NO_WARNINGS
 )
 
+# Add the path to the Assimp source code
+add_subdirectory(assimp)
+
+include_directories(
+    assimp/inlcude/assimp/
+)
+
 ### GLFW ###
 
 add_subdirectory(glfw-3.2.1)

@@ -21,6 +21,11 @@
 #include <common/model.h>
 #include <common/texture.h>
 
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+
+
 using namespace std;
 using namespace glm;
 

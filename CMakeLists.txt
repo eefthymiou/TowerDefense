@@ -73,6 +73,7 @@ include_directories(
   external/Simple-OpenGL-Image-Library/include/
   external/tinyxml2/include/
   external/tinyobjloader/include/
+  external/assimp/inlcude/assimp
   .
   )
 
@@ -82,6 +83,7 @@ set(ALL_LIBS
   GLEW_1130
   SOIL
   TINYXML2
+  assimp
   )
 
 add_definitions(
@@ -111,6 +113,7 @@ add_executable(source_code
   source_code/texture.fragmentshader
   source_code/texture.vertexshader
   )
+
 target_link_libraries(source_code
   ${ALL_LIBS}
   )
