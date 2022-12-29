@@ -8,10 +8,186 @@
 #include "model.h"
 #include "texture.h"
 
+//load a file with AssImp
+#include <assimp/cimport.h> // C importer
+#include <assimp/scene.h> // collects data
+#include <assimp/postprocess.h> // various extra operations
+#include <stdlib.h> // memory management
+#include <assert.h>
+
 using namespace glm;
 using namespace std;
 using namespace ogl;
 using namespace tinyxml2;
+
+mat4 convert_assimp_matrix (aiMatrix4x4 m) {
+    /* entered in columns! */
+    return mat4 (
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        m.a4, m.b4, m.c4, m.d4
+    );
+}
+
+bool load_mesh (
+        const char* file_name,
+        GLuint* vao,
+        int* point_count,
+        mat4* bone_offset_mats,
+        int* bone_count
+    ) {
+    /* load file with assimp and print some stats */
+    const aiScene* scene = aiImportFile (file_name, aiProcess_Triangulate);
+    if (!scene) {
+        fprintf (stderr, "ERROR: reading mesh %s\n", file_name);
+    return false;
+    }
+    printf (" %i animations\n", scene->mNumAnimations);
+    printf (" %i cameras\n", scene->mNumCameras);
+    printf (" %i lights\n", scene->mNumLights);
+    printf (" %i materials\n", scene->mNumMaterials);
+    printf (" %i meshes\n", scene->mNumMeshes);
+    printf (" %i textures\n", scene->mNumTextures);
+
+    /* get first mesh in file only */
+    const aiMesh* mesh = scene->mMeshes[0];
+    printf (" %i vertices in mesh[0]\n", mesh->mNumVertices);
+
+    /* pass back number of vertex points in mesh */
+    *point_count = mesh->mNumVertices;
+    /* generate a VAO, using the pass-by-reference parameter that we give to the
+    function */
+    glGenVertexArrays (1, vao);
+    glBindVertexArray (*vao);
+
+    /* we really need to copy out all the data from AssImp's funny little data
+    structures into pure contiguous arrays before we copy it into data buffers
+    because assimp's texture coordinates are not really contiguous in memory.
+    i allocate some dynamic memory to do this. */
+    GLfloat* points = NULL; // array of vertex points
+    GLfloat* normals = NULL; // array of vertex normals
+    GLfloat* texcoords = NULL; // array of texture coordinates
+    GLint* bone_ids = NULL; // array of bone ID
+
+    if (mesh->HasPositions ()) {
+        points = (GLfloat*)malloc (*point_count * 3 * sizeof (GLfloat));
+        for (int i = 0; i < *point_count; i++) {
+            const aiVector3D* vp = &(mesh->mVertices[i]);
+            points[i * 3] = (GLfloat)vp->x;
+            points[i * 3 + 1] = (GLfloat)vp->y;
+            points[i * 3 + 2] = (GLfloat)vp->z;
+        }
+    }
+    if (mesh->HasNormals ()) {
+        normals = (GLfloat*)malloc (*point_count * 3 * sizeof (GLfloat));
+        for (int i = 0; i < *point_count; i++) {
+            const aiVector3D* vn = &(mesh->mNormals[i]);
+            normals[i * 3] = (GLfloat)vn->x;
+            normals[i * 3 + 1] = (GLfloat)vn->y;
+            normals[i * 3 + 2] = (GLfloat)vn->z;
+        }
+    }
+    if (mesh->HasTextureCoords (0)) {
+        texcoords = (GLfloat*)malloc (*point_count * 2 * sizeof (GLfloat));
+        for (int i = 0; i < *point_count; i++) {
+            const aiVector3D* vt = &(mesh->mTextureCoords[0][i]);
+            texcoords[i * 2] = (GLfloat)vt->x;
+            texcoords[i * 2 + 1] = (GLfloat)vt->y;
+        }
+    }
+    /* copy mesh data into VBOs */
+    if (mesh->HasPositions ()) {
+        GLuint vbo;
+        glGenBuffers (1, &vbo);
+        glBindBuffer (GL_ARRAY_BUFFER, vbo);
+        glBufferData (
+            GL_ARRAY_BUFFER,
+            3 * *point_count * sizeof (GLfloat),
+            points,
+            GL_STATIC_DRAW
+        );
+    glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray (0);
+    free (points); // free our temporary memory
+    }
+    if (mesh->HasNormals ()) {
+        GLuint vbo;
+        glGenBuffers (1, &vbo);
+        glBindBuffer (GL_ARRAY_BUFFER, vbo);
+        glBufferData (
+            GL_ARRAY_BUFFER,
+            3 * *point_count * sizeof (GLfloat),
+            normals,
+            GL_STATIC_DRAW
+        );
+    glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray (1);
+    free (normals); // free our temporary memory
+    }
+    if (mesh->HasTextureCoords (0)) {
+        GLuint vbo;
+        glGenBuffers (1, &vbo);
+        glBindBuffer (GL_ARRAY_BUFFER, vbo);
+        glBufferData (
+            GL_ARRAY_BUFFER,
+            2 * *point_count * sizeof (GLfloat),
+            texcoords,
+            GL_STATIC_DRAW
+        );
+        glVertexAttribPointer (2, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+        glEnableVertexAttribArray (2);
+        free (texcoords); // free our temporary memory
+    }
+    if (mesh->HasTangentsAndBitangents ()) {
+    // NB: could store/print tangents here
+    }
+    /* extract bone weights */
+    if (mesh->HasBones ()) {
+        *bone_count = (int)mesh->mNumBones;
+        /* an array of bones names. max 256 bones, max name length 64 */
+        char bone_names[256][64];
+        bone_ids = (int*)malloc (*point_count * sizeof (int));
+        for (int b_i = 0; b_i < *bone_count; b_i++) {
+            const aiBone* bone = mesh->mBones[b_i];
+            strcpy (bone_names[b_i], bone->mName.data);
+            printf ("bone_names[%i]=%s\n", b_i, bone_names[b_i]);
+            bone_offset_mats[b_i] = convert_assimp_matrix(bone->mOffsetMatrix);
+            /* get weights here later */
+                /* get bone weights
+                we can just assume weight is always 1.0, because we are just using 1 bone
+                per vertex. but any bone that affects a vertex will be assigned as the
+                vertex' bone_id */
+                int num_weights = (int)bone->mNumWeights;
+                for (int w_i = 0; w_i < num_weights; w_i++) {
+                    aiVertexWeight weight = bone->mWeights[w_i];
+                    int vertex_id = (int)weight.mVertexId;
+                    // ignore weight if less than 0.5 factor
+                    if (weight.mWeight >= 0.5f) {
+                        bone_ids[vertex_id] = b_i;
+                    }
+                }
+        } // endfor
+        GLuint vbo;
+        glGenBuffers (1, &vbo);
+        glBindBuffer (GL_ARRAY_BUFFER, vbo);
+        glBufferData (
+        GL_ARRAY_BUFFER,
+        *point_count * sizeof (GLint),
+        bone_ids,
+        GL_STATIC_DRAW
+        );
+        glVertexAttribIPointer(3, 1, GL_INT, 0, NULL);
+        glEnableVertexAttribArray (3);
+        free (bone_ids);
+    } // endif
+
+    /* free assimp's copy of memory */
+    aiReleaseImport (scene);
+    printf ("mesh loaded\n");
+    return true;
+}
+
 
 // simple OBJ loader
 void loadOBJ(

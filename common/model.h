@@ -15,6 +15,14 @@ static std::map<std::string, GLuint> MAP_STRING_GLUINT_DEFAULT_VALUE{};
 * A very simple .obj loader. Use only for teaching purposes. Use loadOBJWithTiny()
 * instead.
 */
+bool load_mesh(
+    const char* file_name,
+    GLuint* vao,
+    int* point_count,
+    glm::mat4* bone_offset_mats,
+    int* bone_count
+);
+
 void loadOBJ(
     const std::string& path,
     std::vector<glm::vec3>& vertices,

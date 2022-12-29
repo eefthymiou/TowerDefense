@@ -44,9 +44,11 @@ GLFWwindow* window;
 Camera* camera;
 Drawable* model;
 GLuint shaderProgram;
+GLuint assimp_shader;
 GLuint gridshader;
 GLuint MVPLocation;
 GLuint gMVPLocation;
+GLuint assimpMVPLocation;
 GLuint translationsLocation;
 GLuint textureSampler;
 GLuint gtextureSampler;
@@ -67,6 +69,23 @@ std::vector<vec2> UVs, ninjaUVs;
 std::vector<vec2> quadUVs;
 
 GLuint useTextureLocation;
+
+
+//load a file with AssImp
+#include <assimp/cimport.h> // C importer
+#include <assimp/scene.h> // collects data
+#include <assimp/postprocess.h> // various extra operations
+#include <stdlib.h> // memory management
+#include <assert.h>
+#define MESH_FILE "../Models/ninja.dae" // file to load ...
+#define TEXTURE_FILE "../Models/Ninja_T.png"
+#define MAX_BONES = 20;
+
+/* load the mesh using assimp */
+GLuint monkey_vao;
+mat4 monkey_bone_offset_matrices[20];
+int monkey_point_count = 0;
+int monkey_bone_count = 0;
 
 
 void createContext() {
@@ -119,34 +138,50 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    loadOBJ("../Models/Mini_Ninja_triangles.obj",
-        ninjaVertices, 
-        ninjaUVs,
-        ninjaNormals);
+    // loadOBJ("../Models/Mini_Ninja_triangles.obj",
+    //     ninjaVertices, 
+    //     ninjaUVs,
+    //     ninjaNormals);
 
-     // VAO
-    glGenVertexArrays(1, &ninjaVAO);
-    glBindVertexArray(ninjaVAO);
+    //  // VAO
+    // glGenVertexArrays(1, &ninjaVAO);
+    // glBindVertexArray(ninjaVAO);
 
-    // vertex VBO
-    glGenBuffers(1, &ninjaVerticiesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, ninjaVerticiesVBO);
-    glBufferData(GL_ARRAY_BUFFER, ninjaVertices.size() * sizeof(glm::vec3),
-                 &ninjaVertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
+    // // vertex VBO
+    // glGenBuffers(1, &ninjaVerticiesVBO);
+    // glBindBuffer(GL_ARRAY_BUFFER, ninjaVerticiesVBO);
+    // glBufferData(GL_ARRAY_BUFFER, ninjaVertices.size() * sizeof(glm::vec3),
+    //              &ninjaVertices[0], GL_STATIC_DRAW);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    // glEnableVertexAttribArray(0);
+
+    // // uvs VBO
+    // glGenBuffers(1, &ninjaUVVBO);
+    // glBindBuffer(GL_ARRAY_BUFFER, ninjaUVVBO);
+    // glBufferData(GL_ARRAY_BUFFER, ninjaUVs.size() * sizeof(glm::vec2),&ninjaUVs[0], GL_STATIC_DRAW);
+    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    // glEnableVertexAttribArray(1);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    assimp_shader = loadShaders("assimp_shaders/shader.vertexshader", "assimp_shaders/shader.fragmentshader");
+    assimpMVPLocation = glGetUniformLocation(assimp_shader, "MVP");
+
+    // assimp
+    load_mesh (
+        MESH_FILE,
+        &monkey_vao,
+        &monkey_point_count,
+        monkey_bone_offset_matrices,
+        &monkey_bone_count
+    );
+
+    printf ("monkey bone count %i\n", monkey_bone_count);
 
     // use texture
     ninjatexture = loadSOIL("../Models/Ninja_T.png");
     
-    // uvs VBO
-    glGenBuffers(1, &ninjaUVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, ninjaUVVBO);
-    glBufferData(GL_ARRAY_BUFFER, ninjaUVs.size() * sizeof(glm::vec2),&ninjaUVs[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
+ 
+    
 
     gridshader = loadShaders("grid/grid.vertexshader", "grid/grid.fragmentshader");
 
@@ -201,8 +236,6 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-
-
 }
 
 void free() {
@@ -242,6 +275,7 @@ void mainLoop() {
             translations[index++] = translation;
         }
     }
+
     do {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -277,22 +311,33 @@ void mainLoop() {
         
 
         // ninja 
-        glBindVertexArray(ninjaVAO);
-        Translate = glm::translate(mat4(), vec3(100.0f,0.0f,100.0f));
-        size = 0.05f;
-        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        // glBindVertexArray(ninjaVAO);
+        // Translate = glm::translate(mat4(), vec3(100.0f,0.0f,100.0f));
+        // size = 0.03f;
+        // Scaling = glm::scale(mat4(), vec3(size,size,size));
         
         // mat4 Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,.0f));
-        modelModelMatrix = Scaling*Translate;
-        mat4 ninjamodelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
-        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ninjamodelMVP[0][0]);
+        // modelModelMatrix = Scaling*Translate;
+        // mat4 ninjamodelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
+        // glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ninjamodelMVP[0][0]);
 
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, ninjatexture);
-        glUniform1i(textureSampler, 1);
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D, ninjatexture);
+        // glUniform1i(textureSampler, 1);
 
-        // draw
-        glDrawArrays(GL_TRIANGLES, 0, ninjaVertices.size());
+        // // draw
+        // glDrawArrays(GL_TRIANGLES, 0, ninjaVertices.size());
+
+        //load suzzane with assimp
+        glUseProgram(assimp_shader);
+        glBindVertexArray (monkey_vao);
+        size = 0.1;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Translate = glm::translate(mat4(), vec3(100.0f,0.0f,100.0f));
+        mat4 assimp_modelMatrix = Scaling*Translate;
+        mat4 assimpmodelMVP = projectionMatrix * viewMatrix * assimp_modelMatrix;
+        glUniformMatrix4fv(assimpMVPLocation, 1, GL_FALSE, &assimpmodelMVP[0][0]);
+        glDrawArrays (GL_TRIANGLES, 0, monkey_point_count);    
         
         // use grid shader
         glUseProgram(gridshader);
