@@ -98,7 +98,7 @@ add_definitions(
 
 add_executable(source_code
   source_code/code.cpp
-
+  
   common/util.cpp
   common/util.h
   common/shader.cpp
@@ -110,8 +110,12 @@ add_executable(source_code
   common/texture.cpp
   common/texture.h
 
-  source_code/texture.fragmentshader
-  source_code/texture.vertexshader
+  shaders/texture.fragmentshader
+  shaders/texture.vertexshader
+  shaders/assimp.vertexshader
+  shaders/assimp.fragmentshader
+  shaders/grid.vertexshader
+  shaders/grid.fragmentshader
   )
 
 target_link_libraries(source_code

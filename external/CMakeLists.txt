@@ -11,13 +11,6 @@ add_definitions(
     -D_CRT_SECURE_NO_WARNINGS
 )
 
-# Add the path to the Assimp source code
-add_subdirectory(assimp)
-
-include_directories(
-    assimp/inlcude/assimp/
-)
-
 ### GLFW ###
 
 add_subdirectory(glfw-3.2.1)
@@ -67,6 +60,9 @@ set_target_properties(GLEW_1130
     PROJECT_LABEL glew_1130
     FOLDER "Libraries"
 )
+
+### assimp ###
+add_subdirectory(assimp)
 
 ### SOIL ###
 

@@ -14,11 +14,13 @@
 #include <assimp/postprocess.h> // various extra operations
 #include <stdlib.h> // memory management
 #include <assert.h>
+// #include "maths_funcs.h"
 
 using namespace glm;
 using namespace std;
 using namespace ogl;
 using namespace tinyxml2;
+
 
 mat4 convert_assimp_matrix (aiMatrix4x4 m) {
     /* entered in columns! */
@@ -30,12 +32,84 @@ mat4 convert_assimp_matrix (aiMatrix4x4 m) {
     );
 }
 
+Skeleton_Node* find_node_in_skeleton (
+    Skeleton_Node* root, const char* node_name) {
+        assert (root); // validate self
+        // look for match
+        if (strcmp (node_name, root->name) == 0) {
+        return root;
+    }
+    // recurse to chidlren
+    for (int i = 0; i < root->num_children; i++) {
+        Skeleton_Node* child = find_node_in_skeleton (root->children[i], node_name);
+        if (child != NULL) {
+        return child;
+        }
+    }
+    // no children match and no self match
+    return NULL;
+}
+
+bool import_skeleton_node (
+    aiNode* assimp_node,
+    Skeleton_Node** skeleton_node,
+    int bone_count,
+    char bone_names[][64]
+) {
+    // allocate memory for node
+    Skeleton_Node* temp = (Skeleton_Node*)malloc (sizeof (Skeleton_Node));
+    // get node properties out of AssImp
+    strcpy (temp->name, assimp_node->mName.C_Str ());
+    printf ("-node name = %s\n", temp->name);
+    temp->num_children = 0;
+    printf ("node has %i children\n", (int)assimp_node->mNumChildren);
+    temp->bone_index = -1;
+    for (int i = 0; i < 20; i++) {
+        temp->children[i] = NULL;
+    }
+    // look for matching bone name
+    bool has_bone = false;
+    for (int i = 0; i < bone_count; i++) {
+        if (strcmp (bone_names[i], temp->name) == 0) {
+            printf ("node uses bone %i\n", i);
+            temp->bone_index = i;
+            has_bone = true;
+            break;
+        }
+    }
+    if (!has_bone) printf ("no bone found for node\n");
+
+    bool has_useful_child = false;
+    for (int i = 0; i < (int)assimp_node->mNumChildren; i++) {
+        if (import_skeleton_node (
+            assimp_node->mChildren[i],
+            &temp->children[temp->num_children],
+            bone_count,
+            bone_names)) {
+        has_useful_child = true;
+        temp->num_children++;
+        } else printf ("useless child culled\n");
+    }
+    if (has_useful_child || has_bone) {
+        // point parameter to our allocated node
+        *skeleton_node = temp;
+        return true;
+    }
+    // no bone or good children - cull self
+    free (temp);
+    temp = NULL;
+    return false;
+}
+
+
 bool load_mesh (
         const char* file_name,
         GLuint* vao,
         int* point_count,
         mat4* bone_offset_mats,
-        int* bone_count
+        int* bone_count,
+        Skeleton_Node** root_node,
+        double* anim_duration
     ) {
     /* load file with assimp and print some stats */
     const aiScene* scene = aiImportFile (file_name, aiProcess_Triangulate);
@@ -179,6 +253,71 @@ bool load_mesh (
         );
         glVertexAttribIPointer(3, 1, GL_INT, 0, NULL);
         glEnableVertexAttribArray (3);
+
+        aiNode* assimp_node = scene->mRootNode;
+        if (!import_skeleton_node (
+            assimp_node,
+            root_node,
+            *bone_count,
+            bone_names
+        )) {
+            printf ("WARNING: no skeleton found in mesh\n");
+        } // endi
+
+        if (scene->mNumAnimations > 0) {
+            // get just the first animation
+            aiAnimation* anim = scene->mAnimations[0];
+            printf ("animation name: %s\n", anim->mName.C_Str ());
+            printf ("animation has %i node channels\n", anim->mNumChannels);
+            printf ("animation has %i mesh channels\n", anim->mNumMeshChannels);
+            printf ("animation duration %f\n", anim->mDuration);
+            printf ("ticks per second %f\n", anim->mTicksPerSecond);
+            *anim_duration = anim->mDuration;
+
+            /* WE WILL GET KEYS HERE */
+            // get the node channels
+            // for (int i = 0; i < (int)anim->mNumChannels; i++) {
+            //     aiNodeAnim* chan = anim->mChannels[i];
+            //     // find the matching node in our skeleton by name
+            //     Skeleton_Node* sn = find_node_in_skeleton (*root_node, chan->mNodeName.C_Str ());
+            //     assert (sn);
+            //     sn->num_pos_keys = chan->mNumPositionKeys;
+            //     sn->num_rot_keys = chan->mNumRotationKeys;
+            //     sn->num_sca_keys = chan->mNumScalingKeys;
+            //     // allocate memory
+            //     sn->pos_keys = (my_vec3*)malloc (sizeof (my_vec3) * sn->num_pos_keys);
+            //     sn->rot_keys = (versor*)malloc (sizeof (versor) * sn->num_rot_keys);
+            //     sn->sca_keys = (my_vec3*)malloc (sizeof (my_vec3) * sn->num_sca_keys);
+            //     sn->pos_key_times = (double*)malloc (sizeof (double) * sn->num_pos_keys);
+            //     sn->rot_key_times = (double*)malloc (sizeof (double) * sn->num_rot_keys);
+            //     sn->sca_key_times = (double*)malloc (sizeof (double) * sn->num_sca_keys);
+            //     // add position keys to node
+            //     for (int i = 0; i < sn->num_pos_keys; i++) {
+            //     aiVectorKey key = chan->mPositionKeys[i];
+            //     sn->pos_keys[i].v[0] = key.mValue.x;
+            //     sn->pos_keys[i].v[1] = key.mValue.y;
+            //     sn->pos_keys[i].v[2] = key.mValue.z;
+            //     sn->pos_key_times[i] = key.mTime;
+            //     }
+            //     // add rotation keys to node
+            //     for (int i = 0; i < sn->num_rot_keys; i++) {
+            //     aiQuatKey key = chan->mRotationKeys[i];
+            //     sn->rot_keys[i].q[0] = key.mValue.w;
+            //     sn->rot_keys[i].q[1] = key.mValue.x;
+            //     sn->rot_keys[i].q[2] = key.mValue.y;
+            //     sn->rot_keys[i].q[3] = key.mValue.z;
+            //     sn->rot_key_times[i] = key.mTime;
+            //     }
+            //     // add scaling keys to node
+            //     for (int i = 0; i < sn->num_sca_keys; i++) {
+            //     aiVectorKey key = chan->mScalingKeys[i];
+            //     sn->sca_keys[i].v[0] = key.mValue.x;
+            //     sn->sca_keys[i].v[1] = key.mValue.y;
+            //     sn->sca_keys[i].v[2] = key.mValue.z;
+            //     sn->sca_key_times[i] = key.mTime;
+            //     } // endfor
+            // }
+        }
         free (bone_ids);
     } // endif
 
@@ -187,7 +326,6 @@ bool load_mesh (
     printf ("mesh loaded\n");
     return true;
 }
-
 
 // simple OBJ loader
 void loadOBJ(
