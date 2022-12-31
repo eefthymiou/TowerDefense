@@ -5,7 +5,7 @@
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
-// #include "maths_funcs.h"
+#include "maths_funcs.h"
 
 static std::vector<unsigned int> VEC_UINT_DEFAUTL_VALUE{};
 static std::vector<glm::vec3> VEC_VEC3_DEFAUTL_VALUE{};
@@ -18,9 +18,9 @@ static std::map<std::string, GLuint> MAP_STRING_GLUINT_DEFAULT_VALUE{};
 struct Skeleton_Node {
     Skeleton_Node* children[20];
     /* key frames */
-    vec3* pos_keys; /* array of XYZ positions */
+    my_vec3* pos_keys; /* array of XYZ positions */
     versor* rot_keys; /* array of quaternion WXYZ rotations */
-    vec3* sca_keys; /* array of XYZ scales */
+    my_vec3* sca_keys; /* array of XYZ scales */
     double* pos_key_times; /* array of times for position keys */
     double* rot_key_times;
     double* sca_key_times;
@@ -37,7 +37,7 @@ bool load_mesh(
     const char* file_name,
     GLuint* vao,
     int* point_count,
-    mat4* bone_offset_mats,
+    my_mat4* bone_offset_mats,
     int* bone_count,
     Skeleton_Node** root_node,
     double* anim_duration
