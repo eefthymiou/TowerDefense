@@ -109,6 +109,8 @@ add_executable(source_code
   common/model.h
   common/texture.cpp
   common/texture.h
+  common/maths_funcs.cpp
+  common/maths_funcs.h
 
   shaders/texture.fragmentshader
   shaders/texture.vertexshader
@@ -116,6 +118,8 @@ add_executable(source_code
   shaders/assimp.fragmentshader
   shaders/grid.vertexshader
   shaders/grid.fragmentshader
+  shaders/bone.fragmentshader
+  shaders/bone.vertexshader
   )
 
 target_link_libraries(source_code

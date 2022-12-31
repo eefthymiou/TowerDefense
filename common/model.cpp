@@ -293,28 +293,28 @@ bool load_mesh (
                 sn->sca_key_times = (double*)malloc (sizeof (double) * sn->num_sca_keys);
                 // add position keys to node
                 for (int i = 0; i < sn->num_pos_keys; i++) {
-                aiVectorKey key = chan->mPositionKeys[i];
-                sn->pos_keys[i].v[0] = key.mValue.x;
-                sn->pos_keys[i].v[1] = key.mValue.y;
-                sn->pos_keys[i].v[2] = key.mValue.z;
-                sn->pos_key_times[i] = key.mTime;
+                    aiVectorKey key = chan->mPositionKeys[i];
+                    sn->pos_keys[i].v[0] = key.mValue.x;
+                    sn->pos_keys[i].v[1] = key.mValue.y;
+                    sn->pos_keys[i].v[2] = key.mValue.z;
+                    sn->pos_key_times[i] = key.mTime;
                 }
                 // add rotation keys to node
                 for (int i = 0; i < sn->num_rot_keys; i++) {
-                aiQuatKey key = chan->mRotationKeys[i];
-                sn->rot_keys[i].q[0] = key.mValue.w;
-                sn->rot_keys[i].q[1] = key.mValue.x;
-                sn->rot_keys[i].q[2] = key.mValue.y;
-                sn->rot_keys[i].q[3] = key.mValue.z;
-                sn->rot_key_times[i] = key.mTime;
+                    aiQuatKey key = chan->mRotationKeys[i];
+                    sn->rot_keys[i].q[0] = key.mValue.w;
+                    sn->rot_keys[i].q[1] = key.mValue.x;
+                    sn->rot_keys[i].q[2] = key.mValue.y;
+                    sn->rot_keys[i].q[3] = key.mValue.z;
+                    sn->rot_key_times[i] = key.mTime;
                 }
                 // add scaling keys to node
                 for (int i = 0; i < sn->num_sca_keys; i++) {
-                aiVectorKey key = chan->mScalingKeys[i];
-                sn->sca_keys[i].v[0] = key.mValue.x;
-                sn->sca_keys[i].v[1] = key.mValue.y;
-                sn->sca_keys[i].v[2] = key.mValue.z;
-                sn->sca_key_times[i] = key.mTime;
+                    aiVectorKey key = chan->mScalingKeys[i];
+                    sn->sca_keys[i].v[0] = key.mValue.x;
+                    sn->sca_keys[i].v[1] = key.mValue.y;
+                    sn->sca_keys[i].v[2] = key.mValue.z;
+                    sn->sca_key_times[i] = key.mTime;
                 } // endfor
             }
         }
