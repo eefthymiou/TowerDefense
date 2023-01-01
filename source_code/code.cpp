@@ -80,7 +80,8 @@ GLuint useTextureLocation;
 #include <stdlib.h> // memory management
 #include <assert.h>
 #define MESH_FILE "../Models/monkey_with_anim.dae" // file to load ...
-// #define MESH_FILE "../Models/model.dae" // file to load ...
+#define MESH_FILE "../Models/hwgrunt.dae" // file to load ...
+#define MESH_FILE "../Models/my_model.dae" // file to load ...
 #define TEXTURE_FILE "../Models/Ninja_T.png"
 #define MAX_BONES 20
 #define _USE_MATH_DEFINES
@@ -103,7 +104,7 @@ float theta = 3.14/4.0f;
 float rot_speed = 1.0f;
 double anim_time = 0.0;
 
-int model_mat_location;
+GLuint model_mat_location;
 GLuint view_mat_location;
 GLuint proj_mat_location;
 
@@ -164,31 +165,6 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    // loadOBJ("../Models/Mini_Ninja_triangles.obj",
-    //     ninjaVertices, 
-    //     ninjaUVs,
-    //     ninjaNormals);
-
-    //  // VAO
-    // glGenVertexArrays(1, &ninjaVAO);
-    // glBindVertexArray(ninjaVAO);
-
-    // // vertex VBO
-    // glGenBuffers(1, &ninjaVerticiesVBO);
-    // glBindBuffer(GL_ARRAY_BUFFER, ninjaVerticiesVBO);
-    // glBufferData(GL_ARRAY_BUFFER, ninjaVertices.size() * sizeof(glm::vec3),
-    //              &ninjaVertices[0], GL_STATIC_DRAW);
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    // glEnableVertexAttribArray(0);
-
-    // // uvs VBO
-    // glGenBuffers(1, &ninjaUVVBO);
-    // glBindBuffer(GL_ARRAY_BUFFER, ninjaUVVBO);
-    // glBufferData(GL_ARRAY_BUFFER, ninjaUVs.size() * sizeof(glm::vec2),&ninjaUVs[0], GL_STATIC_DRAW);
-    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    // glEnableVertexAttribArray(1);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
     for ( int i = 0; i < MAX_BONES; i++ ) {
         monkey_bone_animation_mats[i]  = identity_mat4();
         monkey_bone_offset_matrices[i] = identity_mat4();
@@ -203,36 +179,11 @@ void createContext() {
          &monkey_root_node,
          &monkey_anim_duration 
     );
-    // /* create a buffer of bone positions for visualising the bones */
-    // float bone_positions[3 * 256];
-    // int c = 0;
-    // for ( int i = 0; i < monkey_bone_count; i++ ) {
-    //     // print (monkey_bone_offset_matrices[i]);
-
-    //     // get the x y z translation elements from the last column in the array
-    //     bone_positions[c++] = -monkey_bone_offset_matrices[i].m[12];
-    //     bone_positions[c++] = -monkey_bone_offset_matrices[i].m[13];
-    //     bone_positions[c++] = -monkey_bone_offset_matrices[i].m[14];
-    // }
-    
-    // glGenVertexArrays( 1, &bones_vao );
-    // glBindVertexArray( bones_vao );
-
-    // glGenBuffers( 1, &bones_vbo );
-    // glBindBuffer( GL_ARRAY_BUFFER, bones_vbo );
-    // glBufferData( GL_ARRAY_BUFFER, 3 * monkey_bone_count * sizeof( float ), bone_positions, GL_STATIC_DRAW );
-    // glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 0, NULL );
-    // glEnableVertexAttribArray( 0 );
 
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
     model_mat_location = glGetUniformLocation(assimp_shader, "model");
     view_mat_location = glGetUniformLocation(assimp_shader, "view");
     proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
-
-    // bone_shader = loadShaders("../shaders/bone.vertexshader", "../shaders/bone.fragmentshader");
-    // bones_view_mat_location = glGetUniformLocation( bone_shader, "view" );
-    // bones_proj_mat_location = glGetUniformLocation( bone_shader, "proj" );
-    
     printf ("monkey bone count %i\n", monkey_bone_count);
 
 
@@ -417,11 +368,7 @@ void mainLoop() {
     viewMatrix = camera->viewMatrix;
 
     
-    my_mat4 assimp_modelMatrix = identity_mat4();
-    glUseProgram(assimp_shader);
-    glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, assimp_modelMatrix.m );
-    glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
-    glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
+    
     int bone_matrices_locations[MAX_BONES];
 
     char name[64];
@@ -438,7 +385,7 @@ void mainLoop() {
         double elapsed_seconds         = current_seconds - previous_seconds;
         previous_seconds               = current_seconds;
 
-        anim_time += elapsed_seconds * 0.5;
+        anim_time += elapsed_seconds * 200.0;
         if ( anim_time >= monkey_anim_duration ) { anim_time = monkey_anim_duration - anim_time; }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -468,7 +415,7 @@ void mainLoop() {
         glUniform3fv(translationsLocation, 100, &translations[0].z); 
 
         // draw
-        // glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
 
         // use shaderProgram
         glUseProgram(shaderProgram);
@@ -515,9 +462,18 @@ void mainLoop() {
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         glBindVertexArray( monkey_vao );
+
+        skeleton_animate( monkey_root_node, anim_time, identity_mat4(), monkey_bone_offset_matrices, monkey_bone_animation_mats );
+        Translate = glm::translate(mat4(), vec3(10.0f,3.0f,10.0f));
+        Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,0.0f,1.0f));
+        mat4 assimp_modelMatrix = Translate * Rotate;
+        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &assimp_modelMatrix[0][0]);
+        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+        glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
+        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+        glUniformMatrix4fv( bone_matrices_locations[0], monkey_bone_count, GL_FALSE, monkey_bone_animation_mats[0].m );
         glDrawArrays( GL_TRIANGLES, 0, monkey_point_count );
 
-        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
         // glDrawArrays( GL_TRIANGLES, 0, monkey_point_count );
 
         // glDisable( GL_DEPTH_TEST );
@@ -527,8 +483,8 @@ void mainLoop() {
         // glDrawArrays( GL_POINTS, 0, monkey_bone_count );
         // glDisable( GL_PROGRAM_POINT_SIZE );
 
-        skeleton_animate( monkey_root_node, anim_time, identity_mat4(), monkey_bone_offset_matrices, monkey_bone_animation_mats );
-        glUniformMatrix4fv( bone_matrices_locations[0], monkey_bone_count, GL_FALSE, monkey_bone_animation_mats[0].m );
+        
+        
         
 
         glfwSwapBuffers(window);

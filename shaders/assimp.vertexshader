@@ -39,5 +39,6 @@ void main() {
 
     // st = texture_coord;
 	// normal = vertex_normal;
-    gl_Position = proj * view * bone_matrices[bone_id] * vec4 (vertex_position, 1.0);
+    mat4 MVP = proj * view * model *  bone_matrices[bone_id];
+    gl_Position = MVP * vec4 (vertex_position, 1.0);
 }
