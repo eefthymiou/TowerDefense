@@ -46,7 +46,6 @@ Camera* camera;
 Drawable* model;
 GLuint shaderProgram;
 GLuint assimp_shader;
-GLuint bone_shader;
 GLuint gridshader;
 GLuint MVPLocation;
 GLuint gMVPLocation;
@@ -91,29 +90,17 @@ GLuint useTextureLocation;
 GLuint monkey_vao;
 int monkey_point_count = 0;
 int monkey_bone_count = 0;
+double monkey_anim_duration = 0.0;
+int bone_matrices_locations[MAX_BONES];
 Skeleton_Node* monkey_root_node = NULL;
 my_mat4 g_local_anims[MAX_BONES];
 my_mat4 monkey_bone_animation_mats[MAX_BONES];
 my_mat4 monkey_bone_offset_matrices[MAX_BONES];
-double monkey_anim_duration = 0.0;
-
-float y = 0.0; // position of head
-float elapsed_seconds = 0.01f;
-
-float theta = 3.14/4.0f;
-float rot_speed = 1.0f;
-double anim_time = 0.0;
-
 GLuint model_mat_location;
 GLuint view_mat_location;
 GLuint proj_mat_location;
 
-// GLuint bones_view_mat_location;
-// GLuint bones_proj_mat_location;
-// GLuint bones_vao;
-// GLuint bones_vbo;
 
-// rotate around z axis by an angle in degrees
 
 void createContext() {
     // Create and compile our GLSL program from the shaders
@@ -186,6 +173,12 @@ void createContext() {
     proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
     printf ("monkey bone count %i\n", monkey_bone_count);
 
+    char name[64];
+    for ( int i = 0; i < MAX_BONES; i++ ) {
+        sprintf( name, "bone_matrices[%i]", i );
+        bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
+        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
+    }
 
     // use texture
     // ninjatexture = loadSOIL("../Models/Ninja_T.png");
@@ -355,28 +348,7 @@ void mainLoop() {
             // std::cout << index << glm::to_string(translation) << std::endl;
             translations[index++] = translation;
         }
-    }
-    float identity[] = {
-        1.0f, 0.0f, 0.0f, 0.0f, // first column
-        0.0f, 1.0f, 0.0f, 0.0f, // second column
-        0.0f, 0.0f, 1.0f, 0.0f, // third column
-        0.0f, 0.0f, 0.0f, 1.0f // fourth column
-    };
-    mat4 projectionMatrix,viewMatrix;
-    camera->update();
-    projectionMatrix = camera->projectionMatrix;
-    viewMatrix = camera->viewMatrix;
-
-    
-    
-    int bone_matrices_locations[MAX_BONES];
-
-    char name[64];
-    for ( int i = 0; i < MAX_BONES; i++ ) {
-        sprintf( name, "bone_matrices[%i]", i );
-        bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
-        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
-    }
+    }    
 
     double anim_time = 0.0;
     do {
@@ -390,7 +362,8 @@ void mainLoop() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // cout << anim_time << endl;
-        
+
+        mat4 projectionMatrix,viewMatrix;
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
@@ -403,7 +376,7 @@ void mainLoop() {
         float size = 2.0f;
         mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
         mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
-        mat4 quadModelMatrix = mat4(1) * quadScaling * quadRotate;
+        mat4 quadModelMatrix = quadScaling * quadRotate;
         mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
         glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
 
@@ -464,9 +437,11 @@ void mainLoop() {
         glBindVertexArray( monkey_vao );
 
         skeleton_animate( monkey_root_node, anim_time, identity_mat4(), monkey_bone_offset_matrices, monkey_bone_animation_mats );
+        size = 0.1f;
         Translate = glm::translate(mat4(), vec3(10.0f,3.0f,10.0f));
         Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,0.0f,1.0f));
-        mat4 assimp_modelMatrix = Translate * Rotate;
+        Scaling = glm::scale(mat4(), vec3(1.0f,1.0f,size));
+        mat4 assimp_modelMatrix = Translate * Rotate * Scaling;
         glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &assimp_modelMatrix[0][0]);
         glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
         glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
@@ -474,18 +449,6 @@ void mainLoop() {
         glUniformMatrix4fv( bone_matrices_locations[0], monkey_bone_count, GL_FALSE, monkey_bone_animation_mats[0].m );
         glDrawArrays( GL_TRIANGLES, 0, monkey_point_count );
 
-        // glDrawArrays( GL_TRIANGLES, 0, monkey_point_count );
-
-        // glDisable( GL_DEPTH_TEST );
-        // glEnable( GL_PROGRAM_POINT_SIZE );
-        // glUseProgram(bone_shader);
-        // glBindVertexArray(bones_vao);
-        // glDrawArrays( GL_POINTS, 0, monkey_bone_count );
-        // glDisable( GL_PROGRAM_POINT_SIZE );
-
-        
-        
-        
 
         glfwSwapBuffers(window);
         glfwPollEvents();
