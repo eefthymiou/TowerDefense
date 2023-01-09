@@ -118,8 +118,6 @@ add_executable(source_code
   shaders/assimp.fragmentshader
   shaders/grid.vertexshader
   shaders/grid.fragmentshader
-  shaders/bone.fragmentshader
-  shaders/bone.vertexshader
   )
 
 target_link_libraries(source_code
