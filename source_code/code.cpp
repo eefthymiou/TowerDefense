@@ -65,12 +65,18 @@ GLuint quadVAO, ninjaVAO;
 GLuint quadVerticiesVBO, ninjaVerticiesVBO, ninjaUVVBO;
 GLuint VerticiesVBO, UVVBO;
 GLuint quadUVVBO;
-std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals;
-std::vector<vec2> UVs, ninjaUVs;
+GLuint sphereVAO, sphereTexture,sphereMVP,sphereUVVBO, sphereVerticiesVBO;
+GLuint aircraftVAO,aircraftTexture,aircraftUVVBO,aircraftVerticiesVBO;
+std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices, sphereNormals;
+std::vector<vec2> UVs, ninjaUVs,sphereUVs;
 std::vector<vec2> quadUVs;
 
-GLuint useTextureLocation;
+std::vector<vec3> aircraftVertices, aircraftNormals;
+std::vector<vec2> aircraftUVs;
 
+
+
+GLuint useTextureLocation;
 
 //load a file with AssImp
 #include <assimp/cimport.h> // C importer
@@ -114,18 +120,16 @@ void createContext() {
     textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
 
     // Building 1
-    // model = new Drawable("../OBJ_FILES/cube.obj");
-    // loadOBJ("../Building_2/cottage_obj/new.obj",
-    //     Vertices, 
-    //     UVs,
-    //     Normals);
-    
-    //Building 2
-    loadOBJ("../Building_3/new2.obj",
+    loadOBJ("../Building_2/cottage_obj/new.obj",
         Vertices, 
         UVs,
         Normals);
     
+    //Building 2
+    // loadOBJ("../Building_3/new2.obj",
+    //     Vertices, 
+    //     UVs,
+    //     Normals);
     
     // VAO
     glGenVertexArrays(1, &VAO);
@@ -141,8 +145,8 @@ void createContext() {
 
 
     // use texture
-    // texture = loadSOIL("../Building_2/cottage_textures/cottage_textures/cottage_diffuse.png");
-    texture = loadSOIL("../Building_3/Farmhouse Texture.jpg");
+    texture = loadSOIL("../Building_2/cottage_textures/cottage_textures/cottage_diffuse.png");
+    // texture = loadSOIL("../Building_3/Farmhouse Texture.jpg");
     
     // uvs VBO
     glGenBuffers(1, &UVVBO);
@@ -150,13 +154,68 @@ void createContext() {
     glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),&UVs[0], GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    
+    // sphere
+    loadOBJ("../OBJ_files/sphere.obj",
+        sphereVertices, 
+        sphereUVs,
+        sphereNormals);
+
+    // VAO
+    glGenVertexArrays(1, &sphereVAO);
+    glBindVertexArray(sphereVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &sphereVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sphereVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(glm::vec3),
+                 &sphereVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    sphereTexture = loadSOIL("../Textures/2k_jupiter.jpg");
+
+    // uvs VBO
+    glGenBuffers(1, &sphereUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sphereUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, sphereUVs.size() * sizeof(glm::vec2),&sphereUVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
+    // aircraft
+    loadOBJ("../OBJ_files/aircraft.obj",
+        aircraftVertices, 
+        aircraftUVs,
+        aircraftNormals);
+
+    // VAO
+    glGenVertexArrays(1, &aircraftVAO);
+    glBindVertexArray(aircraftVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &aircraftVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, aircraftVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, aircraftVertices.size() * sizeof(glm::vec3),
+                 &aircraftVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    aircraftTexture = loadSOIL("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+
+    // uvs VBO
+    glGenBuffers(1, &aircraftUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, aircraftUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, aircraftUVs.size() * sizeof(glm::vec2),&aircraftUVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
+    // assimp
     for ( int i = 0; i < MAX_BONES; i++ ) {
         monkey_bone_animation_mats[i]  = identity_mat4();
         monkey_bone_offset_matrices[i] = identity_mat4();
     }
-    // assimp
+    
     load_mesh(
          MESH_FILE, 
          &monkey_vao, 
@@ -349,8 +408,10 @@ void mainLoop() {
             translations[index++] = translation;
         }
     }    
-
     double anim_time = 0.0;
+    mat4 projectionMatrix,viewMatrix;
+    mat4 Scaling,Rotate,Translate;
+
     do {
         static double previous_seconds = glfwGetTime();
         double current_seconds         = glfwGetTime();
@@ -363,55 +424,66 @@ void mainLoop() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         // cout << anim_time << endl;
 
-        mat4 projectionMatrix,viewMatrix;
+        
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
 
         // use grid shader
         glUseProgram(gridshader);
-
         glBindVertexArray(quadVAO);
-
         float size = 2.0f;
         mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
         mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
         mat4 quadModelMatrix = quadScaling * quadRotate;
         mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
         glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
-
-        // Bind our texture in Texture Unit 1
-        glActiveTexture(GL_TEXTURE2);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, quadtexture);
-        glUniform1i(gtextureSampler, 2);   
-
+        glUniform1i(gtextureSampler, 0);   
         glUniform3fv(translationsLocation, 100, &translations[0].z); 
-
-        // draw
         glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
 
         // use shaderProgram
-        glUseProgram(shaderProgram);
-        
-        // Bind model VAO
-        glBindVertexArray(VAO);
 
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO); // bind building vao
         size = 0.1f;
-        mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
-        mat4 Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,0.0f));
-        mat4 Translate = glm::translate(mat4(), vec3(2.0f,0.0f,1.0f));
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,0.0f));
+        Translate = glm::translate(mat4(), vec3(2.0f,0.0f,1.0f));
         mat4 modelModelMatrix = Translate * Scaling * Rotate;
         mat4 modelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &modelMVP[0][0]);
-
-        // Bind our texture in Texture Unit 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(textureSampler, 0); 
-        
-        // draw
-        // glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
-        
+        glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
+
+        // Sphere
+        glBindVertexArray(sphereVAO);
+        size = 20.0f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Translate = glm::translate(mat4(), vec3(10.0f,0.0f,10.0f));
+        mat4 sphereModelMatrix = Translate * Scaling;
+        mat4 sphereMVP = projectionMatrix * viewMatrix * sphereModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &sphereMVP[0][0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, sphereTexture);
+        glUniform1i(textureSampler, 1); 
+        glDrawArrays(GL_TRIANGLES, 0, sphereVertices.size());
+
+        // aircraft
+        glBindVertexArray(aircraftVAO); 
+        size = 0.1f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        mat4 aircraftModelMatrix = Scaling;
+        mat4 aircraftMVP = projectionMatrix * viewMatrix * aircraftModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, aircraftTexture);
+        glUniform1i(textureSampler, 2); 
+        glDrawArrays(GL_TRIANGLES, 0, aircraftVertices.size());
 
         // ninja 
         // glBindVertexArray(ninjaVAO);
@@ -431,7 +503,7 @@ void mainLoop() {
         // // draw
         // glDrawArrays(GL_TRIANGLES, 0, ninjaVertices.size());
 
-        //load suzzane with assimp
+        // assimp
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         glBindVertexArray( monkey_vao );
