@@ -20,6 +20,12 @@
 #include <common/camera.h>
 #include <common/model.h>
 #include <common/texture.h>
+// #include "common/gl_utils.h"
+
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+
 
 using namespace std;
 using namespace glm;
@@ -39,9 +45,11 @@ GLFWwindow* window;
 Camera* camera;
 Drawable* model;
 GLuint shaderProgram;
+GLuint assimp_shader;
 GLuint gridshader;
 GLuint MVPLocation;
 GLuint gMVPLocation;
+GLuint assimpMVPLocation;
 GLuint translationsLocation;
 GLuint textureSampler;
 GLuint gtextureSampler;
@@ -57,16 +65,52 @@ GLuint quadVAO, ninjaVAO;
 GLuint quadVerticiesVBO, ninjaVerticiesVBO, ninjaUVVBO;
 GLuint VerticiesVBO, UVVBO;
 GLuint quadUVVBO;
-std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals;
-std::vector<vec2> UVs, ninjaUVs;
+GLuint sphereVAO, sphereTexture,sphereMVP,sphereUVVBO, sphereVerticiesVBO;
+GLuint aircraftVAO,aircraftTexture,aircraftUVVBO,aircraftVerticiesVBO;
+std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices, sphereNormals;
+std::vector<vec2> UVs, ninjaUVs,sphereUVs;
 std::vector<vec2> quadUVs;
 
+std::vector<vec3> aircraftVertices, aircraftNormals;
+std::vector<vec2> aircraftUVs;
+
+
+
 GLuint useTextureLocation;
+
+//load a file with AssImp
+#include <assimp/cimport.h> // C importer
+#include <assimp/scene.h> // collects data
+#include <assimp/postprocess.h> // various extra operations
+#include <stdlib.h> // memory management
+#include <assert.h>
+#define MESH_FILE "../Models/monkey_with_anim.dae" // file to load ...
+#define MESH_FILE "../Models/hwgrunt.dae" // file to load ...
+#define MESH_FILE "../Models/my_model.dae" // file to load ...
+#define TEXTURE_FILE "../Models/Ninja_T.png"
+#define MAX_BONES 20
+#define _USE_MATH_DEFINES
+
+/* load the mesh using assimp */
+
+GLuint monkey_vao;
+int monkey_point_count = 0;
+int monkey_bone_count = 0;
+double monkey_anim_duration = 0.0;
+int bone_matrices_locations[MAX_BONES];
+Skeleton_Node* monkey_root_node = NULL;
+my_mat4 g_local_anims[MAX_BONES];
+my_mat4 monkey_bone_animation_mats[MAX_BONES];
+my_mat4 monkey_bone_offset_matrices[MAX_BONES];
+GLuint model_mat_location;
+GLuint view_mat_location;
+GLuint proj_mat_location;
+
 
 
 void createContext() {
     // Create and compile our GLSL program from the shaders
-    shaderProgram = loadShaders("texture.vertexshader", "texture.fragmentshader");
+    shaderProgram = loadShaders("../shaders/texture.vertexshader", "../shaders/texture.fragmentshader");
 
     // Draw wire frame triangles or fill: GL_LINE, or GL_FILL
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -76,18 +120,16 @@ void createContext() {
     textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
 
     // Building 1
-    // model = new Drawable("../OBJ_FILES/cube.obj");
-    // loadOBJ("../Building_2/cottage_obj/new.obj",
-    //     Vertices, 
-    //     UVs,
-    //     Normals);
-    
-    //Building 2
-    loadOBJ("../Building_3/new2.obj",
+    loadOBJ("../Building_2/cottage_obj/new.obj",
         Vertices, 
         UVs,
         Normals);
     
+    //Building 2
+    // loadOBJ("../Building_3/new2.obj",
+    //     Vertices, 
+    //     UVs,
+    //     Normals);
     
     // VAO
     glGenVertexArrays(1, &VAO);
@@ -103,8 +145,8 @@ void createContext() {
 
 
     // use texture
-    // texture = loadSOIL("../Building_2/cottage_textures/cottage_textures/cottage_diffuse.png");
-    texture = loadSOIL("../Building_3/Farmhouse Texture.jpg");
+    texture = loadSOIL("../Building_2/cottage_textures/cottage_textures/cottage_diffuse.png");
+    // texture = loadSOIL("../Building_3/Farmhouse Texture.jpg");
     
     // uvs VBO
     glGenBuffers(1, &UVVBO);
@@ -112,38 +154,95 @@ void createContext() {
     glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),&UVs[0], GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    loadOBJ("../Models/Mini_Ninja_triangles.obj",
-        ninjaVertices, 
-        ninjaUVs,
-        ninjaNormals);
+    
+    // sphere
+    loadOBJ("../OBJ_files/sphere.obj",
+        sphereVertices, 
+        sphereUVs,
+        sphereNormals);
 
-     // VAO
-    glGenVertexArrays(1, &ninjaVAO);
-    glBindVertexArray(ninjaVAO);
+    // VAO
+    glGenVertexArrays(1, &sphereVAO);
+    glBindVertexArray(sphereVAO);
 
     // vertex VBO
-    glGenBuffers(1, &ninjaVerticiesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, ninjaVerticiesVBO);
-    glBufferData(GL_ARRAY_BUFFER, ninjaVertices.size() * sizeof(glm::vec3),
-                 &ninjaVertices[0], GL_STATIC_DRAW);
+    glGenBuffers(1, &sphereVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sphereVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(glm::vec3),
+                 &sphereVertices[0], GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(0);
 
-    // use texture
-    ninjatexture = loadSOIL("../Models/Ninja_T.png");
-    
+    sphereTexture = loadSOIL("../Textures/2k_jupiter.jpg");
+
     // uvs VBO
-    glGenBuffers(1, &ninjaUVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, ninjaUVVBO);
-    glBufferData(GL_ARRAY_BUFFER, ninjaUVs.size() * sizeof(glm::vec2),&ninjaUVs[0], GL_STATIC_DRAW);
+    glGenBuffers(1, &sphereUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, sphereUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, sphereUVs.size() * sizeof(glm::vec2),&sphereUVs[0], GL_STATIC_DRAW);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    // aircraft
+    loadOBJ("../OBJ_files/aircraft.obj",
+        aircraftVertices, 
+        aircraftUVs,
+        aircraftNormals);
 
-    gridshader = loadShaders("grid/grid.vertexshader", "grid/grid.fragmentshader");
+    // VAO
+    glGenVertexArrays(1, &aircraftVAO);
+    glBindVertexArray(aircraftVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &aircraftVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, aircraftVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, aircraftVertices.size() * sizeof(glm::vec3),
+                 &aircraftVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    aircraftTexture = loadSOIL("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+
+    // uvs VBO
+    glGenBuffers(1, &aircraftUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, aircraftUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, aircraftUVs.size() * sizeof(glm::vec2),&aircraftUVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
+    // assimp
+    for ( int i = 0; i < MAX_BONES; i++ ) {
+        monkey_bone_animation_mats[i]  = identity_mat4();
+        monkey_bone_offset_matrices[i] = identity_mat4();
+    }
+    
+    load_mesh(
+         MESH_FILE, 
+         &monkey_vao, 
+         &monkey_point_count, 
+         monkey_bone_offset_matrices, 
+         &monkey_bone_count, 
+         &monkey_root_node,
+         &monkey_anim_duration 
+    );
+
+    assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
+    model_mat_location = glGetUniformLocation(assimp_shader, "model");
+    view_mat_location = glGetUniformLocation(assimp_shader, "view");
+    proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
+    printf ("monkey bone count %i\n", monkey_bone_count);
+
+    char name[64];
+    for ( int i = 0; i < MAX_BONES; i++ ) {
+        sprintf( name, "bone_matrices[%i]", i );
+        bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
+        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
+    }
+
+    // use texture
+    // ninjatexture = loadSOIL("../Models/Ninja_T.png");
+    
+    gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders//grid.fragmentshader");
 
     gMVPLocation = glGetUniformLocation(gridshader, "MVP");
     translationsLocation = glGetUniformLocation(gridshader, "offsets");
@@ -196,8 +295,79 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+}
 
 
+void skeleton_animate (
+    Skeleton_Node* node,
+    double anim_time,
+    my_mat4 parent_mat,
+    my_mat4* bone_offset_mats,
+    my_mat4* bone_animation_mats) {
+
+    assert (node);
+    /* the animation of a node after inheriting its parent's animation */
+    my_mat4 our_mat = parent_mat;
+    /* the animation for a particular bone at this time */
+    my_mat4 local_anim = identity_mat4 ();
+
+    my_mat4 node_T = identity_mat4 ();
+    if (node->num_pos_keys > 0) {
+        int prev_key = 0;
+        int next_key = 0;
+        for (int i = 0; i < node->num_pos_keys - 1; i++) {
+            prev_key = i;
+            next_key = i + 1;
+            if (node->pos_key_times[next_key] >= anim_time) {
+                break;
+            }
+        } // endfor
+        float total_t = node->pos_key_times[next_key] - node->pos_key_times[prev_key];
+        float t = (anim_time - node->pos_key_times[prev_key]) / total_t;
+        my_vec3 vi = node->pos_keys[prev_key];
+        my_vec3 vf = node->pos_keys[next_key];
+        my_vec3 lerped = vi * (1.0f - t) + vf * t;
+        node_T = translate (identity_mat4 (), lerped);
+    } // endif num_pos_keys > 0
+
+    my_mat4 node_R = identity_mat4 ();
+    if (node->num_rot_keys > 0) {
+        // find next and previous keys
+        int prev_key = 0;
+        int next_key = 0;
+        for (int i = 0; i < node->num_rot_keys - 1; i++) {
+            prev_key = i;
+            next_key = i + 1;
+            if (node->rot_key_times[next_key] >= anim_time) break;
+        }
+        float total_t = node->rot_key_times[next_key] - node->rot_key_times[prev_key];
+        float t = (anim_time - node->rot_key_times[prev_key]) / total_t;
+        versor qi = node->rot_keys[prev_key];
+        versor qf = node->rot_keys[next_key];
+        versor slerped = slerp (qi, qf, t);
+        node_R = quat_to_mat4 (slerped);
+    } // endif num_rot_keys > 0
+
+    local_anim = node_T * node_R;
+
+    // if node has a weighted bone...
+    int bone_i = node->bone_index;
+    if (bone_i > -1) {
+        // ... then get offset matrices
+        my_mat4 bone_offset = bone_offset_mats[bone_i];
+        // no more inverse
+        our_mat = parent_mat * local_anim;
+        bone_animation_mats[bone_i] = parent_mat * local_anim * bone_offset;
+    } // endif
+    for (int i = 0; i < node->num_children; i++) {
+        skeleton_animate (
+            node->children[i],
+            anim_time,
+            our_mat,
+            bone_offset_mats,
+            bone_animation_mats
+    );
+    } // endfor
 }
 
 void free() {
@@ -220,11 +390,12 @@ void free() {
 
     glDeleteProgram(shaderProgram);
     glDeleteProgram(gridshader);
+    glDeleteProgram(assimp_shader);
     glfwTerminate();
 }
 
 void mainLoop() {
-    glm::vec3 translations[101];
+    glm::vec3 translations[100];
     int index = 0;
     float offset = 5.0f;
     for(int z = -10; z < 10; z += 2){
@@ -236,80 +407,120 @@ void mainLoop() {
             // std::cout << index << glm::to_string(translation) << std::endl;
             translations[index++] = translation;
         }
-    }
+    }    
+    double anim_time = 0.0;
+    mat4 projectionMatrix,viewMatrix;
+    mat4 Scaling,Rotate,Translate;
+
     do {
+        static double previous_seconds = glfwGetTime();
+        double current_seconds         = glfwGetTime();
+        double elapsed_seconds         = current_seconds - previous_seconds;
+        previous_seconds               = current_seconds;
+
+        anim_time += elapsed_seconds * 200.0;
+        if ( anim_time >= monkey_anim_duration ) { anim_time = monkey_anim_duration - anim_time; }
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // cout << anim_time << endl;
 
-        mat4 projectionMatrix,viewMatrix,modelMatrix;
-        int width, height;
-
+        
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
 
+        // use grid shader
+        glUseProgram(gridshader);
+        glBindVertexArray(quadVAO);
+        float size = 2.0f;
+        mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
+        mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
+        mat4 quadModelMatrix = quadScaling * quadRotate;
+        mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
+        glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, quadtexture);
+        glUniform1i(gtextureSampler, 0);   
+        glUniform3fv(translationsLocation, 100, &translations[0].z); 
+        glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
 
         // use shaderProgram
-        glUseProgram(shaderProgram);
-        
-        // Bind model VAO
-        glBindVertexArray(VAO);
 
-        float size = 0.1f;
-        mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
-        mat4 Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,.0f));
-        mat4 Translate = glm::translate(mat4(), vec3(2.0f,0.0f,1.0f));
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO); // bind building vao
+        size = 0.1f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,0.0f));
+        Translate = glm::translate(mat4(), vec3(2.0f,0.0f,1.0f));
         mat4 modelModelMatrix = Translate * Scaling * Rotate;
         mat4 modelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &modelMVP[0][0]);
-
-        // Bind our texture in Texture Unit 0
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(textureSampler, 0); 
-        
-        // draw
         glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
-        
+
+        // Sphere
+        glBindVertexArray(sphereVAO);
+        size = 20.0f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Translate = glm::translate(mat4(), vec3(10.0f,0.0f,10.0f));
+        mat4 sphereModelMatrix = Translate * Scaling;
+        mat4 sphereMVP = projectionMatrix * viewMatrix * sphereModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &sphereMVP[0][0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, sphereTexture);
+        glUniform1i(textureSampler, 1); 
+        glDrawArrays(GL_TRIANGLES, 0, sphereVertices.size());
+
+        // aircraft
+        glBindVertexArray(aircraftVAO); 
+        size = 0.1f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        mat4 aircraftModelMatrix = Scaling;
+        mat4 aircraftMVP = projectionMatrix * viewMatrix * aircraftModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, aircraftTexture);
+        glUniform1i(textureSampler, 2); 
+        glDrawArrays(GL_TRIANGLES, 0, aircraftVertices.size());
 
         // ninja 
-        glBindVertexArray(ninjaVAO);
-        Translate = glm::translate(mat4(), vec3(100.0f,0.0f,100.0f));
-        size = 0.05f;
-        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        // glBindVertexArray(ninjaVAO);
+        // Translate = glm::translate(mat4(), vec3(100.0f,0.0f,100.0f));
+        // size = 0.03f;
+        // Scaling = glm::scale(mat4(), vec3(size,size,size));
         
         // mat4 Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,.0f));
-        modelModelMatrix = Scaling*Translate;
-        mat4 ninjamodelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
-        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ninjamodelMVP[0][0]);
+        // modelModelMatrix = Scaling*Translate;
+        // mat4 ninjamodelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
+        // glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ninjamodelMVP[0][0]);
 
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, ninjatexture);
-        glUniform1i(textureSampler, 1);
+        // glActiveTexture(GL_TEXTURE1);
+        // glBindTexture(GL_TEXTURE_2D, ninjatexture);
+        // glUniform1i(textureSampler, 1);
 
-        // draw
-        glDrawArrays(GL_TRIANGLES, 0, ninjaVertices.size());
-        
-        // use grid shader
-        glUseProgram(gridshader);
+        // // draw
+        // glDrawArrays(GL_TRIANGLES, 0, ninjaVertices.size());
 
-        glBindVertexArray(quadVAO);
+        // assimp
+        glEnable( GL_DEPTH_TEST );
+        glUseProgram(assimp_shader);
+        glBindVertexArray( monkey_vao );
 
-        size = 2.0f;
-        mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
-        mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
-        mat4 quadModelMatrix = mat4(1) * quadScaling * quadRotate;
-        mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
-        glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
+        skeleton_animate( monkey_root_node, anim_time, identity_mat4(), monkey_bone_offset_matrices, monkey_bone_animation_mats );
+        size = 0.1f;
+        Translate = glm::translate(mat4(), vec3(10.0f,3.0f,10.0f));
+        Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,0.0f,1.0f));
+        Scaling = glm::scale(mat4(), vec3(1.0f,1.0f,size));
+        mat4 assimp_modelMatrix = Translate * Rotate * Scaling;
+        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &assimp_modelMatrix[0][0]);
+        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+        glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
+        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+        glUniformMatrix4fv( bone_matrices_locations[0], monkey_bone_count, GL_FALSE, monkey_bone_animation_mats[0].m );
+        glDrawArrays( GL_TRIANGLES, 0, monkey_point_count );
 
-        // Bind our texture in Texture Unit 1
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, quadtexture);
-        glUniform1i(gtextureSampler, 2);   
-
-        glUniform3fv(translationsLocation, 100, &translations[0].z); 
-
-        // draw
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -375,6 +586,46 @@ void initialize() {
     camera = new Camera(window);
 }
 void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // bool monkey_moved = false;
+    // if (glfwGetKey (window, 'Z')) {
+    //     theta += rot_speed * elapsed_seconds;
+    //     g_local_anims[0] = rotate_z_deg (identity_mat4 (), theta);
+    //     g_local_anims[1] = rotate_z_deg (identity_mat4 (), -theta);
+    //     monkey_moved = true;
+    // }
+    // if (glfwGetKey (window, 'X')) {
+    //     theta -= rot_speed * elapsed_seconds;
+    //     g_local_anims[0] = rotate_z_deg (identity_mat4 (), theta);
+    //     g_local_anims[1] = rotate_z_deg (identity_mat4 (), -theta);
+    //     monkey_moved = true;
+    // }
+    // if (glfwGetKey (window, 'C')) {
+    //     y -= 0.5f * elapsed_seconds;
+    //     g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, y, 0.0f));
+    //     monkey_moved = true;
+    // }
+    // if (glfwGetKey (window, 'V')) {
+    //     y += 0.5f * elapsed_seconds;
+    //     g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, y, 0.0f));
+    //     monkey_moved = true;
+    // }
+    // if (monkey_moved) {
+    //     skeleton_animate (
+    //     monkey_root_node,
+    //     identity_mat4 (),
+    //     monkey_bone_offset_matrices,
+    //     monkey_bone_animation_mats
+    // );
+    // glUseProgram (assimp_shader);
+    // glUniformMatrix4fv (
+    //     bone_matrices_locations[0],
+    //     monkey_bone_count,
+    //     GL_FALSE,
+    //     monkey_bone_animation_mats[0].m
+    //     );
+    // }
+    
+    
     // Task 2.1:
    
 

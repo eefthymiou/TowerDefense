@@ -2,10 +2,10 @@
 #define MODEL_LOADER_H
 
 #include <GL/glew.h>
-#include <vector>
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
+#include "maths_funcs.h"
 
 static std::vector<unsigned int> VEC_UINT_DEFAUTL_VALUE{};
 static std::vector<glm::vec3> VEC_VEC3_DEFAUTL_VALUE{};
@@ -15,6 +15,34 @@ static std::map<std::string, GLuint> MAP_STRING_GLUINT_DEFAULT_VALUE{};
 * A very simple .obj loader. Use only for teaching purposes. Use loadOBJWithTiny()
 * instead.
 */
+struct Skeleton_Node {
+    Skeleton_Node* children[20];
+    /* key frames */
+    my_vec3* pos_keys; /* array of XYZ positions */
+    versor* rot_keys; /* array of quaternion WXYZ rotations */
+    my_vec3* sca_keys; /* array of XYZ scales */
+    double* pos_key_times; /* array of times for position keys */
+    double* rot_key_times;
+    double* sca_key_times;
+    int num_pos_keys; /* number of position keys for node */
+    int num_rot_keys;
+    int num_sca_keys;
+    /* existing data */
+    char name[64];
+    int num_children;
+    int bone_index;
+};
+
+bool load_mesh(
+    const char* file_name,
+    GLuint* vao,
+    int* point_count,
+    my_mat4* bone_offset_mats,
+    int* bone_count,
+    Skeleton_Node** root_node,
+    double* anim_duration
+);
+
 void loadOBJ(
     const std::string& path,
     std::vector<glm::vec3>& vertices,

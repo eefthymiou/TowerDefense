@@ -61,6 +61,9 @@ set_target_properties(GLEW_1130
     FOLDER "Libraries"
 )
 
+### assimp ###
+add_subdirectory(assimp)
+
 ### SOIL ###
 
 add_subdirectory(Simple-OpenGL-Image-Library)

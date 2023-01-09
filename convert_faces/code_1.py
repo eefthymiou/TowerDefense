@@ -12,6 +12,7 @@ try:
                 if (s_vertex>4):
                     for i in range(s_vertex-3):
                         sentence = "f "+c_line[1]+" "+c_line[i+2]+" "+c_line[i+3]+"\n"
+                        
                         f2.write(sentence)    
                 else: f2.write(line)
             else: f2.write(line) 
