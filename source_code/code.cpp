@@ -120,15 +120,15 @@ void createContext() {
     MVPLocation = glGetUniformLocation(shaderProgram, "MVP");
     textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
 
-    loadOBJ("../OBJ_files/Tower.obj",
-        Vertices, 
-        UVs,
-        Normals);
-
-    // loadOBJ("../OBJ_files/Plasma.obj",
+    // loadOBJ("../OBJ_files/Tower.obj",
     //     Vertices, 
     //     UVs,
     //     Normals);
+
+    loadOBJ("../OBJ_files/Plasma.obj",
+        Vertices, 
+        UVs,
+        Normals);
     
     // VAO
     glGenVertexArrays(1, &VAO);
@@ -144,8 +144,8 @@ void createContext() {
 
 
     // use texture
-    texture = loadSOIL("../Textures/menara_kl_tex/T_menara_kl_DIFF.jpg");
-    // texture = loadSOIL("../Textures/Maps/Bakedtexture.png");
+    // texture = loadSOIL("../Textures/menara_kl_tex/T_menara_kl_DIFF.jpg");
+    texture = loadSOIL("../Textures/Maps/Bakedtexture.png");
     
     // uvs VBO
     glGenBuffers(1, &UVVBO);
@@ -404,11 +404,22 @@ void free() {
     glfwTerminate();
 }
 
+vec3 get_root(vec3 prev_translation) {
+    glm::vec3 translation;
+    if (prev_translation.x<=18.0f){
+        translation.x = prev_translation.x += 0.01;
+        translation.y = 2.0f;
+        translation.z = prev_translation.z += 0.01;
+    }
+    else translation=prev_translation;
+    return translation;
+}
+
 void mainLoop() {
     glm::vec3 translations[100];
     int index = 0;
     float offset = 5.0f;
-    for(int z = -10; z < 10; z += 2){
+    for(int z = -10; z <= 10; z += 2){
         for(int x = -10; x < 10; x += 2){
             glm::vec3 translation;
             translation.x = (float)x / 2.0f + offset ;
@@ -421,6 +432,7 @@ void mainLoop() {
     double anim_time = 0.0;
     mat4 projectionMatrix,viewMatrix;
     mat4 Scaling,Rotate,Translate;
+    vec3 prev_translation = vec3(0.0f,0.0f,0.0f);
 
     do {
         static double previous_seconds = glfwGetTime();
@@ -432,9 +444,7 @@ void mainLoop() {
         if ( anim_time >= monkey_anim_duration ) { anim_time = monkey_anim_duration - anim_time; }
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // cout << anim_time << endl;
 
-        
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
@@ -515,8 +525,13 @@ void mainLoop() {
         // aircraft
         glBindVertexArray(aircraftVAO); 
         size = 0.1f;
+        
+        vec3 translation = get_root(prev_translation);
+        prev_translation = translation;
         Scaling = glm::scale(mat4(), vec3(size,size,size));
-        mat4 aircraftModelMatrix = Scaling;
+        Translate = glm::translate(mat4(),translation);
+        // Rotate = glm::rotate(mat4(), )
+        mat4 aircraftModelMatrix = Translate*Scaling;
         mat4 aircraftMVP = projectionMatrix * viewMatrix * aircraftModelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
         glActiveTexture(GL_TEXTURE2);
