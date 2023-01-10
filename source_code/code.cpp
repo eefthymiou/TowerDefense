@@ -43,7 +43,6 @@ void free();
 // Global variables
 GLFWwindow* window;
 Camera* camera;
-Drawable* model;
 GLuint shaderProgram;
 GLuint assimp_shader;
 GLuint gridshader;
@@ -65,7 +64,8 @@ GLuint quadVAO, ninjaVAO;
 GLuint quadVerticiesVBO, ninjaVerticiesVBO, ninjaUVVBO;
 GLuint VerticiesVBO, UVVBO;
 GLuint quadUVVBO;
-GLuint sphereVAO, sphereTexture,sphereMVP,sphereUVVBO, sphereVerticiesVBO;
+GLuint sphereVAO, sphereTexture,sphereUVVBO, sphereVerticiesVBO;
+GLuint cubeVAO, cubeVerticiesVBO;
 GLuint aircraftVAO,aircraftTexture,aircraftUVVBO,aircraftVerticiesVBO;
 std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices, sphereNormals;
 std::vector<vec2> UVs, ninjaUVs,sphereUVs;
@@ -73,7 +73,8 @@ std::vector<vec2> quadUVs;
 
 std::vector<vec3> aircraftVertices, aircraftNormals;
 std::vector<vec2> aircraftUVs;
-
+std::vector<vec3> cubeVertices, cubeNormals;
+std::vector<vec2> cubeUVs;
 
 
 GLuint useTextureLocation;
@@ -119,14 +120,12 @@ void createContext() {
     MVPLocation = glGetUniformLocation(shaderProgram, "MVP");
     textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
 
-    // Building 1
-    loadOBJ("../Building_2/cottage_obj/new.obj",
+    loadOBJ("../OBJ_files/Tower.obj",
         Vertices, 
         UVs,
         Normals);
-    
-    //Building 2
-    // loadOBJ("../Building_3/new2.obj",
+
+    // loadOBJ("../OBJ_files/Plasma.obj",
     //     Vertices, 
     //     UVs,
     //     Normals);
@@ -145,8 +144,8 @@ void createContext() {
 
 
     // use texture
-    texture = loadSOIL("../Building_2/cottage_textures/cottage_textures/cottage_diffuse.png");
-    // texture = loadSOIL("../Building_3/Farmhouse Texture.jpg");
+    texture = loadSOIL("../Textures/menara_kl_tex/T_menara_kl_DIFF.jpg");
+    // texture = loadSOIL("../Textures/Maps/Bakedtexture.png");
     
     // uvs VBO
     glGenBuffers(1, &UVVBO);
@@ -155,7 +154,24 @@ void createContext() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
 
-    
+    // cube
+    loadOBJ("../OBJ_files/cube.obj",
+        cubeVertices, 
+        cubeUVs,
+        cubeNormals);
+
+    // VAO
+    glGenVertexArrays(1, &cubeVAO);
+    glBindVertexArray(cubeVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &cubeVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, cubeVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, cubeVertices.size() * sizeof(glm::vec3),
+                 &cubeVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
     // sphere
     loadOBJ("../OBJ_files/sphere.obj",
         sphereVertices, 
@@ -382,12 +398,6 @@ void free() {
     glDeleteTextures(1, &quadtexture);
     glDeleteVertexArrays(1, &quadVAO);
 
-    // ninja
-    glDeleteBuffers(1, &ninjaVerticiesVBO);
-    glDeleteBuffers(1, &ninjaUVVBO);
-    glDeleteTextures(1, &ninjatexture);
-    glDeleteVertexArrays(1, &ninjaVAO);
-
     glDeleteProgram(shaderProgram);
     glDeleteProgram(gridshader);
     glDeleteProgram(assimp_shader);
@@ -445,19 +455,26 @@ void mainLoop() {
         glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
 
         // use shaderProgram
-
+        // First Tower
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO); // bind building vao
-        size = 0.1f;
+        size = 0.02f;
         Scaling = glm::scale(mat4(), vec3(size,size,size));
-        Rotate = glm::rotate(mat4(),glm::radians(-90.0f),vec3(0.0f,1.0f,0.0f));
-        Translate = glm::translate(mat4(), vec3(2.0f,0.0f,1.0f));
-        mat4 modelModelMatrix = Translate * Scaling * Rotate;
-        mat4 modelMVP = projectionMatrix * viewMatrix * modelModelMatrix;
-        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &modelMVP[0][0]);
+        Translate = glm::translate(mat4(), vec3(2.0f,0.0f,2.0f));
+        mat4 Tower1ModelMatrix = Translate * Scaling;
+        mat4 Tower1MVP = projectionMatrix * viewMatrix * Tower1ModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &Tower1MVP[0][0]);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(textureSampler, 0); 
+        glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
+        // Second Tower
+        size = 0.02f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Translate = glm::translate(mat4(), vec3(16.0f,0.0f,16.0f));
+        mat4 Tower2ModelMatrix = Translate * Scaling;
+        mat4 Tower2MVP = projectionMatrix * viewMatrix * Tower2ModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &Tower2MVP[0][0]);
         glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
 
         // Sphere
@@ -472,6 +489,28 @@ void mainLoop() {
         glBindTexture(GL_TEXTURE_2D, sphereTexture);
         glUniform1i(textureSampler, 1); 
         glDrawArrays(GL_TRIANGLES, 0, sphereVertices.size());
+
+        // cube 1
+        glBindVertexArray(cubeVAO);
+        size = 2.5f;
+        Scaling = glm::scale(mat4(), vec3(size,4.0*size,size));
+        Translate = glm::translate(mat4(), vec3(2.0f,0.0f,2.0f));
+        mat4 cube1ModelMatrix = Translate * Scaling;
+        mat4 cube1MVP = projectionMatrix * viewMatrix * cube1ModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &cube1MVP[0][0]);
+        glUniform1i(textureSampler, 1); 
+        // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
+
+        // cube 2
+        glBindVertexArray(cubeVAO);
+        size = 2.5f;
+        Scaling = glm::scale(mat4(), vec3(size,4.0*size,size));
+        Translate = glm::translate(mat4(), vec3(16.0f,0.0f,16.0f));
+        mat4 cube2ModelMatrix = Translate * Scaling;
+        mat4 cube2MVP = projectionMatrix * viewMatrix * cube2ModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &cube2MVP[0][0]);
+        glUniform1i(textureSampler, 1); 
+        // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
         // aircraft
         glBindVertexArray(aircraftVAO); 
