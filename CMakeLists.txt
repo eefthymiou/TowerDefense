@@ -98,7 +98,7 @@ add_definitions(
 
 add_executable(source_code
   source_code/code.cpp
-  
+
   common/util.cpp
   common/util.h
   common/shader.cpp
@@ -111,6 +111,8 @@ add_executable(source_code
   common/texture.h
   common/maths_funcs.cpp
   common/maths_funcs.h
+  common/aircraft.cpp
+  common/aircraft.h
 
   shaders/texture.fragmentshader
   shaders/texture.vertexshader
