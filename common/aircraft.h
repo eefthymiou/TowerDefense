@@ -11,6 +11,7 @@ class Aircraft :  public RigidBody {
 public:
     float maxspeed,maxforce,size;
     glm::vec3 acceleration,target;
+    bool moving;
 
     Aircraft(std::string mesh_path, glm::vec3 pos, glm::vec3 vel, float mass, glm::vec3 t);
     ~Aircraft();
@@ -33,6 +34,7 @@ public:
 
 private:
     void createContext();
+    float map(float x, float in_min, float in_max, float out_min, float out_max);
 };
 
 #endif

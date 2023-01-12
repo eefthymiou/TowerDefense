@@ -20,6 +20,7 @@
 #include <common/camera.h>
 #include <common/model.h>
 #include <common/texture.h>
+#include <common/maths_funcs.h>
 
 #include "aircraft.h"
 
@@ -41,6 +42,7 @@ Aircraft::Aircraft(string model_path,vec3 pos,vec3 vel,float mass,vec3 t)
     maxspeed = 10.0f;
     maxforce = 5.0f;
     size = 0.08f;
+    moving = true;
     createContext();
 }
 
@@ -54,12 +56,29 @@ void Aircraft::applyForce(vec3 force) {
     acceleration = acceleration + force;
 }
 
+float Aircraft::map(float x, float in_min, float in_max, float out_min, float out_max) {
+return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
 vec3 Aircraft::seek(){
     vec3 desired = target-x;
-    desired = glm::normalize(desired) * maxspeed;
+
+    float distance = length(x-target);
+    // cout << distance << endl;
+    if (distance<3.0f) moving = false;
+
+    float close = 5.0f;
+    if (distance<close) {
+        // the aircraft soon is arrives to the target point
+        float m = map(distance,0,close,0,maxspeed);
+        desired = normalize(desired) * m;
+    }
+    else desired = normalize(desired) * maxspeed;
+
     vec3 steer = desired - v;
     steer = glm::clamp(steer, -maxforce, maxforce);
     return steer;
+    
 }
 
 void Aircraft::bind() {

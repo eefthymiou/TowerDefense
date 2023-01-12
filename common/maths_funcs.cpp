@@ -18,6 +18,7 @@
 #include <math.h>
 
 /*--------------------------------CONSTRUCTORS--------------------------------*/
+
 my_vec2::my_vec2() {}
 
 my_vec2::my_vec2( float x, float y ) {

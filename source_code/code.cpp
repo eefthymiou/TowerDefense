@@ -203,9 +203,9 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // aircraft
-    vec3 position = vec3(3.0f,2.0f,0.0f);
-    vec3 target = vec3(12.0f,2.0f,12.0f);
-    vec3 vel = vec3(0.0f,5.0f,0.0f);
+    vec3 position = vec3(2.0f,4.0f,2.0f);
+    vec3 target = vec3(18.0f,2.0f,18.0f);
+    vec3 vel = vec3(0.0f,5.0f,5.0f);
     
 
     // target = position;
@@ -519,16 +519,18 @@ void mainLoop() {
 
         // aircraft
         vec3 force = first_aircraft->seek();
-        first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
-            vector<float> f(6, 0.0f);
-            f[0] = force.x;
-            f[1] = force.y;
-            f[2] = force.z;
-            return f;
-        };
+        if (first_aircraft->moving){
+            first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                vector<float> f(6, 0.0f);
+                f[0] = force.x;
+                f[1] = force.y;
+                f[2] = force.z;
+                return f;
+            };
+            first_aircraft->update(t,dt);
+        }
         // cout <<"force: " + to_string(force) << endl;
-        cout <<"vel: " + to_string(first_aircraft->v) << endl;
-        first_aircraft->update(t,dt);
+        // cout <<"vel: " + to_string(first_aircraft->v) << endl;
         mat4 aircraftMVP = projectionMatrix * viewMatrix * first_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
         glActiveTexture(GL_TEXTURE2);
