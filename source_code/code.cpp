@@ -193,7 +193,7 @@ void createContext() {
     model_mat_location = glGetUniformLocation(assimp_shader, "model");
     view_mat_location = glGetUniformLocation(assimp_shader, "view");
     proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
-    printf ("monkey bone count %i\n", first_animation->monkey_bone_count);
+    printf ("monkey bone count %i\n", first_animation->bone_count);
 
     char name[64];
     for ( int i = 0; i < MAX_BONES; i++ ) {
@@ -302,7 +302,7 @@ void mainLoop() {
         previous_seconds               = current_seconds;
 
         anim_time += elapsed_seconds * 200.0;
-        if ( anim_time >= first_animation->monkey_anim_duration ) { anim_time = first_animation->monkey_anim_duration - anim_time; }
+        if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
 
         float currentTime = glfwGetTime();
         float dt = currentTime - t;
@@ -413,12 +413,12 @@ void mainLoop() {
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         first_animation->bind();
-        first_animation->skeleton_animate(first_animation->monkey_root_node, anim_time, identity_mat4(),first_animation->monkey_bone_offset_matrices, first_animation->monkey_bone_animation_mats );
+        first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
         first_animation->update();
         glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_animation->modelMatrix[0][0]);
         glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
         glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
-        glUniformMatrix4fv( bone_matrices_locations[0], first_animation->monkey_bone_count, GL_FALSE, first_animation->monkey_bone_animation_mats[0].m );
+        glUniformMatrix4fv( bone_matrices_locations[0], first_animation->bone_count, GL_FALSE, first_animation->bone_animation_mats[0].m );
         first_animation->draw();
 
 

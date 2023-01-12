@@ -39,14 +39,14 @@ public:
     ~Animation();
 
 public:
-    GLuint monkey_vao;
-    int monkey_point_count = 0;
-    int monkey_bone_count = 0;
-    double monkey_anim_duration = 0.0;
-    Skeleton_Node* monkey_root_node = NULL;
+    GLuint vao;
+    int point_count = 0;
+    int bone_count = 0;
+    double anim_duration = 0.0;
+    Skeleton_Node* root_node = NULL;
     my_mat4 g_local_anims[MAX_BONES];
-    my_mat4 monkey_bone_animation_mats[MAX_BONES];
-    my_mat4 monkey_bone_offset_matrices[MAX_BONES];
+    my_mat4 bone_animation_mats[MAX_BONES];
+    my_mat4 bone_offset_matrices[MAX_BONES];
     glm::mat4 modelMatrix;
 
     glm::vec3 get_root(glm::vec3 prev_translation);

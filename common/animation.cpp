@@ -421,24 +421,28 @@ void load_mesh( const char* file_name, GLuint* vao, int* point_count, my_mat4* b
 
 Animation::Animation(const char*  path){
     for ( int i = 0; i < MAX_BONES; i++ ) {
-        monkey_bone_animation_mats[i]  = identity_mat4();
-        monkey_bone_offset_matrices[i] = identity_mat4();
+        bone_animation_mats[i]  = identity_mat4();
+        bone_offset_matrices[i] = identity_mat4();
     }
     load_mesh(
         path, 
-        &monkey_vao, 
-        &monkey_point_count, 
-        monkey_bone_offset_matrices, 
-        &monkey_bone_count, 
-        &monkey_root_node,
-        &monkey_anim_duration);
+        &vao, 
+        &point_count, 
+        bone_offset_matrices, 
+        &bone_count, 
+        &root_node,
+        &anim_duration);
+}
+
+Animation::~Animation(){
+    glDeleteBuffers(1, &vao);
 }
 
 void Animation::bind(){
-    glBindVertexArray( monkey_vao );
+    glBindVertexArray( vao );
 }
 void Animation::draw(){
-    glDrawArrays( GL_TRIANGLES, 0, monkey_point_count );
+    glDrawArrays( GL_TRIANGLES, 0, point_count );
 }
 
 void Animation::update(){
