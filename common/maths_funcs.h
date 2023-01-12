@@ -130,11 +130,11 @@ float determinant( const my_mat4& mm );
 my_mat4 inverse( const my_mat4& mm );
 my_mat4 transpose( const my_mat4& mm );
 // affine functions
-my_mat4 translate( const my_mat4& m, const my_vec3& v );
+my_mat4 my_translate( const my_mat4& m, const my_vec3& v );
 my_mat4 rotate_x_deg( const my_mat4& m, float deg );
 my_mat4 rotate_y_deg( const my_mat4& m, float deg );
 my_mat4 rotate_z_deg( const my_mat4& m, float deg );
-my_mat4 scale( const my_mat4& m, const my_vec3& v );
+my_mat4 my_scale( const my_mat4& m, const my_vec3& v );
 // camera functions
 my_mat4 look_at( const my_vec3& cam_pos, my_vec3 targ_pos, const my_vec3& up );
 my_mat4 perspective( float fovy, float aspect, float near, float far );

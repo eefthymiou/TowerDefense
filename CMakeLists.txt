@@ -101,6 +101,8 @@ add_executable(source_code
 
   common/util.cpp
   common/util.h
+  common/animation.cpp
+  common/animation.h
   common/shader.cpp
   common/shader.h
   common/camera.cpp
@@ -115,6 +117,7 @@ add_executable(source_code
   common/RigidBody.h
   common/aircraft.cpp
   common/aircraft.h
+  
   
 
   shaders/texture.fragmentshader

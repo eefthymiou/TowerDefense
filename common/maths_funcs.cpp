@@ -346,7 +346,7 @@ my_mat4 transpose( const my_mat4& mm ) {
 
 /*--------------------------AFFINE MATRIX FUNCTIONS---------------------------*/
 // translate a 4d matrix with xyz array
-my_mat4 translate( const my_mat4& m, const my_vec3& v ) {
+my_mat4 my_translate( const my_mat4& m, const my_vec3& v ) {
   my_mat4 m_t  = identity_mat4();
   m_t.m[12] = v.v[0];
   m_t.m[13] = v.v[1];
@@ -391,7 +391,7 @@ my_mat4 rotate_z_deg( const my_mat4& m, float deg ) {
 }
 
 // scale a matrix by [x, y, z]
-my_mat4 scale( const my_mat4& m, const my_vec3& v ) {
+my_mat4 my_scale( const my_mat4& m, const my_vec3& v ) {
   my_mat4 a  = identity_mat4();
   a.m[0]  = v.v[0];
   a.m[5]  = v.v[1];
@@ -404,7 +404,7 @@ my_mat4 scale( const my_mat4& m, const my_vec3& v ) {
 my_mat4 look_at( const my_vec3& cam_pos, my_vec3 targ_pos, const my_vec3& up ) {
   // inverse translation
   my_mat4 p = identity_mat4();
-  p      = translate( p, my_vec3( -cam_pos.v[0], -cam_pos.v[1], -cam_pos.v[2] ) );
+  p      = my_translate( p, my_vec3( -cam_pos.v[0], -cam_pos.v[1], -cam_pos.v[2] ) );
   // distance vector
   my_vec3 d = targ_pos - cam_pos;
   // forward vector
