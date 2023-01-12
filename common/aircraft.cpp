@@ -22,13 +22,15 @@
 #include <common/texture.h>
 
 #include "aircraft.h"
+#include "util.h"
+#include "texture.h"
+
 
 using namespace glm;
 using namespace std;
 
-Aircraft::Aircraft(string model_path,string texture_path){
-    loadOBJ(model_path,Vertices, UVs,Normals);
-    // Texture = loadSOIL(texture_path);
+Aircraft::Aircraft(std::string model_path){
+    loadOBJ(model_path,Vertices,UVs,Normals);
     createContext();
 }
 
@@ -43,15 +45,24 @@ void Aircraft::bind() {
     glBindVertexArray(VAO);
 }
 
+void Aircraft::bindTexture() {
+    glBindTexture(GL_TEXTURE_2D, Texture);
+}
+
+void Aircraft::loadTexture(const std::string& filename){
+    if (filename.length() == 0) return;
+    Texture = loadSOIL(filename.c_str());
+}
+
+void Aircraft::update(){
+    float size = 0.1f;
+    mat4 Translate = glm::translate(mat4(), vec3(0.0f,4.0f,0.0f));
+    mat4 Rotate = glm::rotate(mat4(), glm::radians(90.0f), vec3(0.0f,1.0f,0.0f));
+    mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
+    modelMatrix = Translate * Rotate * Scaling;
+}
+
 void Aircraft::draw() {
-    // float size = 0.1f; 
-    // // Rotate = glm::rotate(mat4(), )
-    // mat4 aircraftModelMatrix = mat4(1.0f);
-    // mat4 aircraftMVP = projectionMatrix * viewMatrix * aircraftModelMatrix;
-    // glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
-    // glActiveTexture(GL_TEXTURE2);
-    // glBindTexture(GL_TEXTURE_2D, Texture);
-    // glUniform1i(textureSampler, 2); 
     glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
 }
 

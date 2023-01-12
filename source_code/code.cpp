@@ -20,6 +20,7 @@
 #include <common/camera.h>
 #include <common/model.h>
 #include <common/texture.h>
+#include <common/aircraft.h>
 // #include "common/gl_utils.h"
 
 #include <assimp/scene.h>
@@ -107,6 +108,8 @@ GLuint model_mat_location;
 GLuint view_mat_location;
 GLuint proj_mat_location;
 
+// aircraft
+Aircraft* first_aircraft;
 
 
 void createContext() {
@@ -200,32 +203,9 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // aircraft
-    loadOBJ("../OBJ_files/aircraft.obj",
-        aircraftVertices, 
-        aircraftUVs,
-        aircraftNormals);
-
-    // VAO
-    glGenVertexArrays(1, &aircraftVAO);
-    glBindVertexArray(aircraftVAO);
-
-    // vertex VBO
-    glGenBuffers(1, &aircraftVerticiesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, aircraftVerticiesVBO);
-    glBufferData(GL_ARRAY_BUFFER, aircraftVertices.size() * sizeof(glm::vec3),
-                 &aircraftVertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
-    aircraftTexture = loadSOIL("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
-
-    // uvs VBO
-    glGenBuffers(1, &aircraftUVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, aircraftUVVBO);
-    glBufferData(GL_ARRAY_BUFFER, aircraftUVs.size() * sizeof(glm::vec2),&aircraftUVs[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
-
+    first_aircraft = new Aircraft("../OBJ_files/aircraft.obj");
+    first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+    
     // assimp
     for ( int i = 0; i < MAX_BONES; i++ ) {
         monkey_bone_animation_mats[i]  = identity_mat4();
@@ -523,21 +503,14 @@ void mainLoop() {
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
         // aircraft
-        glBindVertexArray(aircraftVAO); 
-        size = 0.1f;
-        
-        vec3 translation = get_root(prev_translation);
-        prev_translation = translation;
-        Scaling = glm::scale(mat4(), vec3(size,size,size));
-        Translate = glm::translate(mat4(),translation);
-        // Rotate = glm::rotate(mat4(), )
-        mat4 aircraftModelMatrix = Translate*Scaling;
-        mat4 aircraftMVP = projectionMatrix * viewMatrix * aircraftModelMatrix;
+        first_aircraft->bind();
+        first_aircraft->update();
+        mat4 aircraftMVP = projectionMatrix * viewMatrix * first_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, aircraftTexture);
-        glUniform1i(textureSampler, 2); 
-        glDrawArrays(GL_TRIANGLES, 0, aircraftVertices.size());
+        first_aircraft->bindTexture();
+        glUniform1i(textureSampler, 2);
+        first_aircraft->draw();
 
         // ninja 
         // glBindVertexArray(ninjaVAO);
