@@ -5,15 +5,21 @@
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
+#include "RigidBody.h"
 
-class Aircraft {
+class Aircraft :  public RigidBody {
 public:
-    Aircraft(std::string mesh_path);
+    float maxspeed,maxforce,size;
+    glm::vec3 acceleration,target;
+
+    Aircraft(std::string mesh_path, glm::vec3 pos, glm::vec3 vel, float mass, glm::vec3 t);
     ~Aircraft();
 
     void loadTexture(const std::string& filename);
     void bind();
-    void update();
+    glm::vec3 seek();
+    void applyForce(glm::vec3 force);
+    void update(float t, float dt);
     void bindTexture();
     void draw();
 

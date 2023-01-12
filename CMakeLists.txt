@@ -111,8 +111,11 @@ add_executable(source_code
   common/texture.h
   common/maths_funcs.cpp
   common/maths_funcs.h
+  common/RigidBody.cpp
+  common/RigidBody.h
   common/aircraft.cpp
   common/aircraft.h
+  
 
   shaders/texture.fragmentshader
   shaders/texture.vertexshader

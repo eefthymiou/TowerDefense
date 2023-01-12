@@ -22,15 +22,25 @@
 #include <common/texture.h>
 
 #include "aircraft.h"
-#include "util.h"
-#include "texture.h"
+
 
 
 using namespace glm;
 using namespace std;
 
-Aircraft::Aircraft(std::string model_path){
+Aircraft::Aircraft(string model_path,vec3 pos,vec3 vel,float mass,vec3 t)
+    : RigidBody() {
     loadOBJ(model_path,Vertices,UVs,Normals);
+
+    m = mass;
+    x = pos;
+    v = vel;
+    P = m * v;
+    target = t;
+    acceleration = vec3(0.0f,0.0f,0.0f);
+    maxspeed = 10.0f;
+    maxforce = 5.0f;
+    size = 0.08f;
     createContext();
 }
 
@@ -40,6 +50,19 @@ Aircraft::~Aircraft() {
     glDeleteBuffers(1, &UVVBO);
 }
 
+void Aircraft::applyForce(vec3 force) {
+    acceleration = acceleration + force;
+}
+
+vec3 Aircraft::seek(){
+    vec3 desired = target-x;
+    desired = glm::normalize(desired) * maxspeed;
+    vec3 steer = desired - v;
+    steer = glm::clamp(steer, -maxforce, maxforce);
+ 
+    // applyForce(steer);
+    return steer;
+}
 
 void Aircraft::bind() {
     glBindVertexArray(VAO);
@@ -54,12 +77,43 @@ void Aircraft::loadTexture(const std::string& filename){
     Texture = loadSOIL(filename.c_str());
 }
 
-void Aircraft::update(){
-    float size = 0.1f;
-    mat4 Translate = glm::translate(mat4(), vec3(0.0f,4.0f,0.0f));
-    mat4 Rotate = glm::rotate(mat4(), glm::radians(90.0f), vec3(0.0f,1.0f,0.0f));
-    mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
-    modelMatrix = Translate * Rotate * Scaling;
+// void Aircraft::update(float t, float dt){
+//     //integration
+//     advanceState(t, dt);
+    
+//     seek();
+
+//     v = v + acceleration;
+//     v = glm::clamp(v, -maxspeed, maxspeed);
+//     x = x + v;
+//     acceleration = vec3(0.0f,0.0f,0.0f);
+
+//     float size = 0.1f;
+//     mat4 Translate = glm::translate(mat4(), x);
+//     mat4 Rotate = glm::rotate(mat4(), glm::radians(90.0f), vec3(0.0f,1.0f,0.0f));
+//     mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
+//     modelMatrix = Translate * Rotate * Scaling;
+// }
+
+void Aircraft::update(float t, float dt) {
+    //integration
+    advanceState(t, dt);
+
+    // v = v + acceleration;
+    // v = glm::clamp(v, -maxspeed, maxspeed);
+    // x = x + v;
+    // acceleration = vec3(0.0f,0.0f,0.0f);
+
+    // compute model matrix
+    mat4 scale = glm::scale(mat4(), vec3(size, size, size));
+    mat4 rotation = glm::rotate(mat4(), glm::radians(90.0f), vec3(0.0f,1.0f,0.0f));
+    mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
+// #ifdef USE_QUATERNIONS
+//     mat4 rotation = mat4_cast(q);
+// #else
+//     mat4 rotation = mat4(R);
+// #endif
+    modelMatrix = tranlation * rotation * scale;
 }
 
 void Aircraft::draw() {

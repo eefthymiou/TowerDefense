@@ -203,7 +203,11 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // aircraft
-    first_aircraft = new Aircraft("../OBJ_files/aircraft.obj");
+    vec3 position = vec3(0.0f,2.0f,0.0f);
+    vec3 vel = vec3(1.0f,5.0f,1.0f);
+    vec3 target = vec3(14.0f,2.0f,14.0f);
+    float mass = 2.0f;
+    first_aircraft = new Aircraft("../OBJ_files/aircraft.obj",position,vel,mass,target);
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
     
     // assimp
@@ -414,6 +418,8 @@ void mainLoop() {
     mat4 Scaling,Rotate,Translate;
     vec3 prev_translation = vec3(0.0f,0.0f,0.0f);
 
+    float t = glfwGetTime();
+
     do {
         static double previous_seconds = glfwGetTime();
         double current_seconds         = glfwGetTime();
@@ -422,6 +428,10 @@ void mainLoop() {
 
         anim_time += elapsed_seconds * 200.0;
         if ( anim_time >= monkey_anim_duration ) { anim_time = monkey_anim_duration - anim_time; }
+
+        float currentTime = glfwGetTime();
+        float dt = currentTime - t;
+        // float dt = 0.001;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -503,13 +513,23 @@ void mainLoop() {
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
         // aircraft
-        first_aircraft->bind();
-        first_aircraft->update();
+        vec3 force = first_aircraft->seek();
+        first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
+            vector<float> f(6, 0.0f);
+            f[0] = force.x;
+            f[1] = force.y;
+            f[2] = force.z;
+            return f;
+        };
+        // cout <<"force: " + to_string(force) << endl;
+        cout <<"vel: " + to_string(first_aircraft->v) << endl;
+        first_aircraft->update(t,dt);
         mat4 aircraftMVP = projectionMatrix * viewMatrix * first_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
         glActiveTexture(GL_TEXTURE2);
         first_aircraft->bindTexture();
         glUniform1i(textureSampler, 2);
+        first_aircraft->bind();
         first_aircraft->draw();
 
         // ninja 
@@ -552,6 +572,7 @@ void mainLoop() {
         glfwSwapBuffers(window);
         glfwPollEvents();
         
+        t +=dt;
         
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) == 0);
