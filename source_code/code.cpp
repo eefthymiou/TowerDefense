@@ -203,9 +203,14 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // aircraft
-    vec3 position = vec3(0.0f,2.0f,0.0f);
-    vec3 vel = vec3(1.0f,5.0f,1.0f);
-    vec3 target = vec3(14.0f,2.0f,14.0f);
+    vec3 position = vec3(3.0f,2.0f,0.0f);
+    vec3 target = vec3(12.0f,2.0f,12.0f);
+    vec3 vel = vec3(0.0f,5.0f,0.0f);
+    
+
+    // target = position;
+    // vel = vec3(0.0f,0.0f,0.0f);
+
     float mass = 2.0f;
     first_aircraft = new Aircraft("../OBJ_files/aircraft.obj",position,vel,mass,target);
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
