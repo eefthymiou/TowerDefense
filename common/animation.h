@@ -48,6 +48,7 @@ public:
     my_mat4 bone_animation_mats[MAX_BONES];
     my_mat4 bone_offset_matrices[MAX_BONES];
     glm::mat4 modelMatrix;
+    GLuint Texture;
 
     glm::vec3 get_root(glm::vec3 prev_translation);
 
@@ -61,6 +62,8 @@ public:
     void bind();
     void update();
     void draw();
+    void loadTexture(const std::string& filename);
+    void bindTexture();
 };
 
 #endif

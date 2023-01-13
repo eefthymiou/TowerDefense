@@ -7,12 +7,16 @@ layout(location = 3) in int bone_id;
 
 uniform mat4 model;
 uniform mat4 view, proj;
+
 // a deformation matrix for each bone:
 uniform mat4 bone_matrices[64];
 
 // out vec3 normal;
 // out vec2 st;
+
+
 out vec3 colour;
+out vec2 UV;
 
 void main() {
     if (bone_id==0) colour = vec3(0.7942185324615326, 0.7555894353892558, 0.38788611085076563);
@@ -39,6 +43,8 @@ void main() {
 
     // st = texture_coord;
 	// normal = vertex_normal;
-    mat4 MVP = proj * view * model *  bone_matrices[bone_id];
+    // mat4 MVP = proj * view * model *  bone_matrices[bone_id];
+    mat4 MVP = proj * view * model;
     gl_Position = MVP * vec4 (vertex_position, 1.0);
+    UV = texture_coord;
 }
