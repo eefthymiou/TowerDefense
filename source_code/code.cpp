@@ -188,7 +188,9 @@ void createContext() {
 
     // amimation
     // first_animation = new Animation("../Models/my_model.dae");
-    first_animation = new Animation("../Models/shooter2.dae");
+    // first_animation = new Animation("../Models/cannon.dae");
+    // first_animation->loadTexture("../Textures/15-mecha_minion_1/cannon.png");
+    first_animation = new Animation("../Models/monkey_with_anim2.dae");
     first_animation->loadTexture("../Models/Texture_0.jpg");
 
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
@@ -418,7 +420,7 @@ void mainLoop() {
         first_animation->bindTexture();
         glUniform1i(textureSampler, 0);
         first_animation->bind();
-        // first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
+        first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
         first_animation->update();
         glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_animation->modelMatrix[0][0]);
         glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );

@@ -19,6 +19,7 @@ out vec3 colour;
 out vec2 UV;
 
 void main() {
+    
     if (bone_id==0) colour = vec3(0.7942185324615326, 0.7555894353892558, 0.38788611085076563);
     else if (bone_id==1) colour = vec3(0.5776128622119698, 0.1688420887302835, 0.6191631196676215);
     else if (bone_id==2) colour = vec3(0.07803640080101337, 0.849687785374943, 0.12738345997988965);
@@ -40,11 +41,12 @@ void main() {
     else if (bone_id==18) colour = vec3(0.002784577934225374, 0.05492300333347033, 0.6199086305871573);
     else if (bone_id==19) colour = vec3(0.584445162709545, 0.6034063001643226, 0.8712207434795478);
     else colour = vec3 (1.0, 0.0, 0.0);
-
+   
+    
     // st = texture_coord;
 	// normal = vertex_normal;
-    // mat4 MVP = proj * view * model *  bone_matrices[bone_id];
-    mat4 MVP = proj * view * model;
+    mat4 MVP = proj * view * model *  bone_matrices[bone_id];
+    // mat4 MVP = proj * view * model;
     gl_Position = MVP * vec4 (vertex_position, 1.0);
     UV = texture_coord;
 }

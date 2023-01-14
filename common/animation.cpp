@@ -451,16 +451,16 @@ void Animation::bind(){
     glBindVertexArray( vao );
 }
 void Animation::draw(){
-    glDrawArrays( GL_TRIANGLES, 0, point_count );
+    glDrawArrays( GL_LINES, 0, point_count );
 }
 
 void Animation::update(){
-    float size = 0.1f;
+    float size = 1.0f;
     mat4 Translate = glm::translate(mat4(), vec3(10.0f,3.0f,10.0f));
     mat4 Rotate = glm::rotate(mat4(),radians(-90.0f),vec3(0.0f,0.0f,1.0f));
+    // modelMatrix = Translate * Rotate * Scaling;
     // mat4 Scaling = glm::scale(mat4(), vec3(1.0f,1.0f,size));
     mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
-    // modelMatrix = Translate * Rotate * Scaling;
     modelMatrix = Scaling;
 }
 
