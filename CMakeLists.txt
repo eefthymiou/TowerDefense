@@ -117,6 +117,8 @@ add_executable(source_code
   common/RigidBody.h
   common/aircraft.cpp
   common/aircraft.h
+  common/moving_object.cpp
+  common/moving_object.h
   
   
 

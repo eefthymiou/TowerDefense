@@ -22,6 +22,7 @@
 #include <common/texture.h>
 #include <common/aircraft.h>
 #include <common/animation.h>
+#include <common/moving_object.h>
 // #include "common/gl_utils.h"
 
 #include <assimp/scene.h>
@@ -47,7 +48,7 @@ GLFWwindow* window;
 Camera* camera;
 Animation* first_animation;
 Aircraft* first_aircraft;
-Aircraft* planet1;
+Moving_obj* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
 GLuint gridshader;
@@ -71,6 +72,7 @@ GLuint VerticiesVBO, UVVBO;
 GLuint quadUVVBO;
 GLuint sphereVAO, sphereTexture,sphereUVVBO, sphereVerticiesVBO;
 GLuint cubeVAO, cubeVerticiesVBO;
+GLuint ammoVAO, ammoTexture, ammoUVVBO, ammoVerticesVBO;
 GLuint aircraftVAO,aircraftTexture,aircraftUVVBO,aircraftVerticiesVBO;
 std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices, sphereNormals;
 std::vector<vec2> UVs, ninjaUVs,sphereUVs;
@@ -80,6 +82,9 @@ std::vector<vec3> aircraftVertices, aircraftNormals;
 std::vector<vec2> aircraftUVs;
 std::vector<vec3> cubeVertices, cubeNormals;
 std::vector<vec2> cubeUVs;
+std::vector<vec3> ammoVertices, ammoNormals;
+std::vector<vec2> ammoUVs;
+
 
 GLuint model_mat_location;
 GLuint view_mat_location;
@@ -178,21 +183,54 @@ void createContext() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
 
+    // ammo
+    loadOBJ("../OBJ_files/ammo.obj",
+        ammoVertices, 
+        ammoUVs,
+        ammoNormals);
+
+    // VAO
+    glGenVertexArrays(1, &ammoVAO);
+    glBindVertexArray(ammoVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &ammoVerticesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, ammoVerticesVBO);
+    glBufferData(GL_ARRAY_BUFFER, ammoVertices.size() * sizeof(glm::vec3),
+                 &ammoVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+    ammoTexture = loadSOIL("../Textures/ammo/box_fin_DefaultMaterial_BaseColor.tga");
+    // ammoTexture = loadSOIL("../Textures/ammo/Ambient Occlusion Map from Mesh DefaultMaterial.png");
+    
+    // uvs VBO
+    glGenBuffers(1, &ammoUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, ammoUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, ammoUVs.size() * sizeof(glm::vec2),&ammoUVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
+
     // aircraft
     vec3 position = vec3(0.0f,2.0f,4.0f);
     vec3 target = vec3(14.0f,2.0f,14.0f);
     vec3 vel = vec3(0.01f,1.01f,0.01f);
     float mass = 2.0f;
-    first_aircraft = new Aircraft("../OBJ_files/aircraft.obj",position,vel,mass,target);
+    int ammo = 1000;
+    first_aircraft = new Aircraft(position,vel,mass,target,ammo);
+    first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
 
     // planet
     position = vec3(4.0f, 2.0f, 14.0f);
-    target = vec3(6.0f,2.0f,6.0f);
+    target = vec3(6.0f,2.0f,4.0f);
     vel = vec3(1.0f,1.0f,1.0f);
-    planet1 = new Aircraft("../OBJ_files/sphere.obj",position,vel,mass,target);
+    planet1 = new Moving_obj(position,vel,mass,target);
+    planet1->load_mesh("../OBJ_files/sphere.obj");
     planet1->loadTexture("../Textures/2k_mars.jpg");
-
+    planet1->arrives = false;
+    planet1->maxforce = 10.0f;
+    planet1->maxspeed = 10.0f;
 
     // amimation
     /*
@@ -286,6 +324,12 @@ void free() {
     glfwTerminate();
 }
 
+float get_random_pos(){
+    int N = 10;
+    float pos = rand() % N + 4.0f;
+    return pos;
+}
+
 void mainLoop() {
     glm::vec3 translations[100];
     int index = 0;
@@ -307,6 +351,7 @@ void mainLoop() {
     float t = glfwGetTime();
     float timmer = 0.0f;
     int direction =1;
+    float pos = get_random_pos();
     do {
         /*
         static double previous_seconds = glfwGetTime();
@@ -318,9 +363,10 @@ void mainLoop() {
         if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
         */
         float currentTime = glfwGetTime();
-        float dt = currentTime - t;
+        // float dt = currentTime - t;
+        float dt = 0.1;
         timmer += dt;
-        // float dt = 0.001;
+        
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -401,15 +447,25 @@ void mainLoop() {
         glUniform1i(textureSampler, 1); 
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
+        // ammo
+        glBindVertexArray(ammoVAO);
+        size = 0.03;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
+        
+        vec3 ammo_position = vec3(pos,pos/4+2,pos);
+        Translate = glm::translate(mat4(),ammo_position);
+        mat4 ammoModelMatrix = Translate * Rotate * Scaling;
+        mat4 ammoMVP = projectionMatrix * viewMatrix * ammoModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ammoMVP[0][0]);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, ammoTexture);
+        glUniform1i(textureSampler, 3); 
+        glDrawArrays(GL_TRIANGLES, 0, ammoVertices.size());
+
         // aircraft
-        size = 0.08;
-        
-        // cout<<timmer<<endl;
-        // if (timmer>10) {
-        //     first_aircraft->target = vec3(9.0f,2.0f,9.0f);
-        //     first_aircraft->moving = true;
-        // }
-        
+        size = 0.08; 
+        if(first_aircraft->handle_ammo(ammo_position)) pos = get_random_pos();
         if (distance(first_aircraft->x, first_aircraft->target)>0.01){
             vec3 force1 = first_aircraft->seek();
             first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
@@ -431,12 +487,13 @@ void mainLoop() {
         first_aircraft->bind();
         first_aircraft->draw();
 
+
         // float distance = length(planet1->x-planet1->target);
-        // if (distance<1.0f) {
+        // if (distance<2.0f) {
         //     vec3 prev_target = planet1->target;
         //     if (prev_target.x==14.0) direction = -1;
-        //     if (prev_target.x==4.0) direction = 1;
-        //     planet1->target = vec3(prev_target.x+direction*2.0f, prev_target.y,20-prev_target.z);
+        //     if (prev_target.x==4.0)  direction = 1;
+        //     planet1->target = vec3(prev_target.x+direction*2.0f, prev_target.y,18-prev_target.z);
         // }
         // vec3 force2 = planet1->seek();
         // planet1->forcing = [&](float t, const vector<float>& y)->vector<float> {

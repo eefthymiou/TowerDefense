@@ -5,38 +5,18 @@
 #include <string>
 #include <map>
 #include <glm/glm.hpp>
-#include "RigidBody.h"
+#include "moving_object.h"
 
-class Aircraft :  public RigidBody {
+class Aircraft :  public Moving_obj {
 public:
-    float maxspeed,maxforce;
-    glm::vec3 acceleration,target;
-    bool moving;
-    bool arrives;
-
-    Aircraft(std::string mesh_path, glm::vec3 pos, glm::vec3 vel, float mass, glm::vec3 t);
-    ~Aircraft();
-
-    void loadTexture(const std::string& filename);
-    void bind();
+    Aircraft(glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t,int a);
+public:
+    int ammo;
+    bool find_ammo;
+    glm::vec3 initial_target;
+    
     glm::vec3 seek();
-    void applyForce(glm::vec3 force);
-    void update(float t, float dt, float size);
-    void bindTexture();
-    void draw();
-
-public:
-    std::vector<glm::vec3> Vertices, Normals;
-    std::vector<glm::vec2> UVs;
-    glm::mat4 modelMatrix;
-
-    glm::vec3 initial_pos;
-    GLuint VAO, verticesVBO, UVVBO;
-    GLuint Texture;
-
-private:
-    void createContext();
-    float map(float x, float in_min, float in_max, float out_min, float out_max);
+    bool handle_ammo(glm::vec3 pos_ammo);
 };
-
 #endif
+

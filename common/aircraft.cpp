@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstdlib>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -14,60 +15,27 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-// Shader loading utilities and other
-#include <common/shader.h>
-#include <common/util.h>
-#include <common/camera.h>
-#include <common/model.h>
-#include <common/texture.h>
-#include <common/maths_funcs.h>
-#include <cmath>
 #include "aircraft.h"
-
-
 
 using namespace glm;
 using namespace std;
 
-Aircraft::Aircraft(string model_path,vec3 pos,vec3 vel,float mass,vec3 t)
-    : RigidBody() {
-    loadOBJ(model_path,Vertices,UVs,Normals);
-
-    m = mass;
-    x = pos;
-    v = vel;
-    P = m * v;
-    target = t;
-    initial_pos = pos;
-    maxspeed = 2.0f;
-    maxforce = 2.0f;
-    moving = true;
-    arrives = false;
-    createContext();
-}
-
-Aircraft::~Aircraft() {
-    glDeleteBuffers(1, &VAO);
-    glDeleteBuffers(1, &verticesVBO);
-    glDeleteBuffers(1, &UVVBO);
-}
-
-void Aircraft::applyForce(vec3 force) {
-    acceleration = acceleration + force;
-}
-
-float Aircraft::map(float x, float in_min, float in_max, float out_min, float out_max) {
-return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a) : 
+    Moving_obj(pos,vel,mass,t) {
+        ammo = a;
+        initial_target = t;
+        find_ammo = false;
 }
 
 vec3 Aircraft::seek(){
     vec3 desired = target-x;
     vec3 steer;
-    cout << length(v) << endl;
+    // cout << length(v) << endl;
     float distance = length(x-target);
-    if (distance<5.0f) {
+    // cout << distance << endl;
+    if (distance<4.0f && arrives) {
         // the aircraft soon arrives to the target point
-        float m = (distance/5.0f) * (maxspeed/10);
+        float m = (distance/4.0f) * (maxspeed);
         desired = normalize(desired) * m; 
         steer = desired-v;
     }
@@ -80,59 +48,32 @@ vec3 Aircraft::seek(){
     return steer;
 }
 
-void Aircraft::bind() {
-    glBindVertexArray(VAO);
-}
 
-void Aircraft::bindTexture() {
-    glBindTexture(GL_TEXTURE_2D, Texture);
-}
+bool Aircraft::handle_ammo(vec3 ammo_pos){
+    float distance = length(x-target);
+    // cout << ammo << endl;
+    if (ammo>0 && distance<5.0f){
+        // start shoot... decreases ammo
+        ammo-=1;
+        return false;
+    }
+    else if  (ammo==0 && distance<1.0f && find_ammo == true){
+        // aircraft now has ammo... return to the tower
+        cout << "ammo full. RETURN TO TOWER" << endl;
+        target = initial_target;
+        ammo = 1000;
+        find_ammo = false;
+        arrives = true;
+        return true;
+    }
 
-void Aircraft::loadTexture(const std::string& filename){
-    if (filename.length() == 0) return;
-    Texture = loadSOIL(filename.c_str());
-}
-
-
-void Aircraft::update(float t, float dt, float size) {
-    //integration
-    advanceState(t, dt);
-
-    // compute model matrix
-    vec3 v1 = v;
-    v1.y = 0;
-    vec3 direction = normalize(v1);
-    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), direction));
-    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), direction);
-    mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
-    mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
-    mat4 scale = glm::scale(mat4(), vec3(size, size, size));
-    mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));
-    modelMatrix = tranlation * rotation * rotation_x * scale;
-}
-
-void Aircraft::draw() {
-    glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
-}
-
-void Aircraft::createContext() {
-    // VAO
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    // vertex VBO
-    glGenBuffers(1, &verticesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, verticesVBO);
-    glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(glm::vec3),
-                 &Vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
-    // uvs VBO
-    glGenBuffers(1, &UVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, UVVBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),&UVs[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
-
+    else if (ammo==0 && find_ammo==false){
+        // target now is to find ammo
+        cout << "out of ammo" << endl;
+        target = ammo_pos;
+        find_ammo = true;
+        arrives = false;
+        return false;
+    }
+    return false;
 }
