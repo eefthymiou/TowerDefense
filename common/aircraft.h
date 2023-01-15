@@ -9,9 +9,10 @@
 
 class Aircraft :  public RigidBody {
 public:
-    float maxspeed,maxforce,size;
+    float maxspeed,maxforce;
     glm::vec3 acceleration,target;
     bool moving;
+    bool arrives;
 
     Aircraft(std::string mesh_path, glm::vec3 pos, glm::vec3 vel, float mass, glm::vec3 t);
     ~Aircraft();
@@ -20,7 +21,7 @@ public:
     void bind();
     glm::vec3 seek();
     void applyForce(glm::vec3 force);
-    void update(float t, float dt);
+    void update(float t, float dt, float size);
     void bindTexture();
     void draw();
 
@@ -29,6 +30,7 @@ public:
     std::vector<glm::vec2> UVs;
     glm::mat4 modelMatrix;
 
+    glm::vec3 initial_pos;
     GLuint VAO, verticesVBO, UVVBO;
     GLuint Texture;
 

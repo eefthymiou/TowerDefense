@@ -21,7 +21,7 @@
 #include <common/model.h>
 #include <common/texture.h>
 #include <common/maths_funcs.h>
-
+#include <cmath>
 #include "aircraft.h"
 
 
@@ -38,11 +38,11 @@ Aircraft::Aircraft(string model_path,vec3 pos,vec3 vel,float mass,vec3 t)
     v = vel;
     P = m * v;
     target = t;
-    acceleration = vec3(0.0f,0.0f,0.0f);
-    maxspeed = 10.0f;
-    maxforce = 5.0f;
-    size = 0.08f;
+    initial_pos = pos;
+    maxspeed = 2.0f;
+    maxforce = 2.0f;
     moving = true;
+    arrives = false;
     createContext();
 }
 
@@ -62,23 +62,22 @@ return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 
 vec3 Aircraft::seek(){
     vec3 desired = target-x;
-
+    vec3 steer;
+    cout << length(v) << endl;
     float distance = length(x-target);
-    // cout << distance << endl;
-    if (distance<3.0f) moving = false;
-
-    float close = 5.0f;
-    if (distance<close) {
-        // the aircraft soon is arrives to the target point
-        float m = map(distance,0,close,0,maxspeed);
-        desired = normalize(desired) * m;
+    if (distance<5.0f) {
+        // the aircraft soon arrives to the target point
+        float m = (distance/5.0f) * (maxspeed/10);
+        desired = normalize(desired) * m; 
+        steer = desired-v;
     }
-    else desired = normalize(desired) * maxspeed;
-
-    vec3 steer = desired - v;
+    else {
+        desired = normalize(desired) * maxspeed;
+        steer = desired-v;
+    }
     steer = glm::clamp(steer, -maxforce, maxforce);
+    // cout << length(steer) << endl;
     return steer;
-    
 }
 
 void Aircraft::bind() {
@@ -95,27 +94,21 @@ void Aircraft::loadTexture(const std::string& filename){
 }
 
 
-void Aircraft::update(float t, float dt) {
+void Aircraft::update(float t, float dt, float size) {
     //integration
     advanceState(t, dt);
 
     // compute model matrix
-    mat4 scale = glm::scale(mat4(), vec3(size, size, size));
-    mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
-    mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));
-    
     vec3 v1 = v;
     v1.y = 0;
     vec3 direction = normalize(v1);
-    if (direction!=vec3(0.0f,0.0f,0.0f)){
-        float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), direction));
-        vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), direction);
-        mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
-        mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
-        mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));  
-        modelMatrix = tranlation * rotation * rotation_x * scale;
-    }
-    else modelMatrix = tranlation * rotation * scale;
+    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), direction));
+    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), direction);
+    mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
+    mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
+    mat4 scale = glm::scale(mat4(), vec3(size, size, size));
+    mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));
+    modelMatrix = tranlation * rotation * rotation_x * scale;
 }
 
 void Aircraft::draw() {

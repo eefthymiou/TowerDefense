@@ -47,6 +47,7 @@ GLFWwindow* window;
 Camera* camera;
 Animation* first_animation;
 Aircraft* first_aircraft;
+Aircraft* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
 GLuint gridshader;
@@ -178,19 +179,24 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // aircraft
-    vec3 position = vec3(2.0f,4.0f,2.0f);
-    vec3 target = vec3(18.0f,2.0f,18.0f);
-    vec3 vel = vec3(0.0f,5.0f,5.0f);
+    vec3 position = vec3(0.0f,2.0f,4.0f);
+    vec3 target = vec3(14.0f,2.0f,14.0f);
+    vec3 vel = vec3(0.01f,1.01f,0.01f);
     float mass = 2.0f;
     first_aircraft = new Aircraft("../OBJ_files/aircraft.obj",position,vel,mass,target);
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
 
+    // planet
+    position = vec3(4.0f, 2.0f, 14.0f);
+    target = vec3(6.0f,2.0f,6.0f);
+    vel = vec3(1.0f,1.0f,1.0f);
+    planet1 = new Aircraft("../OBJ_files/sphere.obj",position,vel,mass,target);
+    planet1->loadTexture("../Textures/2k_mars.jpg");
+
 
     // amimation
-    // first_animation = new Animation("../Models/my_model.dae");
-    // first_animation = new Animation("../Models/cannon.dae");
-    // first_animation->loadTexture("../Textures/15-mecha_minion_1/cannon.png");
-    first_animation = new Animation("../Models/monkey_with_anim2.dae");
+    /*
+    first_animation = new Animation("../Models/monkey_with_anim.dae");
     first_animation->loadTexture("../Models/Texture_0.jpg");
 
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
@@ -205,8 +211,9 @@ void createContext() {
         bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
         glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
     }
-    
-    gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders//grid.fragmentshader");
+    */
+
+    gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
 
     gMVPLocation = glGetUniformLocation(gridshader, "MVP");
     translationsLocation = glGetUniformLocation(gridshader, "offsets");
@@ -298,8 +305,10 @@ void mainLoop() {
     mat4 Scaling,Rotate,Translate;
 
     float t = glfwGetTime();
-
+    float timmer = 0.0f;
+    int direction =1;
     do {
+        /*
         static double previous_seconds = glfwGetTime();
         double current_seconds         = glfwGetTime();
         double elapsed_seconds         = current_seconds - previous_seconds;
@@ -307,9 +316,10 @@ void mainLoop() {
 
         anim_time += elapsed_seconds * 200.0;
         if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
-
+        */
         float currentTime = glfwGetTime();
         float dt = currentTime - t;
+        timmer += dt;
         // float dt = 0.001;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -392,16 +402,24 @@ void mainLoop() {
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
         // aircraft
-        vec3 force = first_aircraft->seek();
-        if (first_aircraft->moving){
+        size = 0.08;
+        
+        // cout<<timmer<<endl;
+        // if (timmer>10) {
+        //     first_aircraft->target = vec3(9.0f,2.0f,9.0f);
+        //     first_aircraft->moving = true;
+        // }
+        
+        if (distance(first_aircraft->x, first_aircraft->target)>0.01){
+            vec3 force1 = first_aircraft->seek();
             first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                vector<float> f(6, 0.0f);
-                f[0] = force.x;
-                f[1] = force.y;
-                f[2] = force.z;
-                return f;
+                vector<float> f1(6, 0.0f);
+                f1[0] = force1.x;
+                f1[1] = force1.y;
+                f1[2] = force1.z;
+                return f1;
             };
-            first_aircraft->update(t,dt);
+            first_aircraft->update(t,dt,size);
         }
         // cout <<"force: " + to_string(force) << endl;
         // cout <<"vel: " + to_string(first_aircraft->v) << endl;
@@ -413,7 +431,32 @@ void mainLoop() {
         first_aircraft->bind();
         first_aircraft->draw();
 
-        // assimp
+        // float distance = length(planet1->x-planet1->target);
+        // if (distance<1.0f) {
+        //     vec3 prev_target = planet1->target;
+        //     if (prev_target.x==14.0) direction = -1;
+        //     if (prev_target.x==4.0) direction = 1;
+        //     planet1->target = vec3(prev_target.x+direction*2.0f, prev_target.y,20-prev_target.z);
+        // }
+        // vec3 force2 = planet1->seek();
+        // planet1->forcing = [&](float t, const vector<float>& y)->vector<float> {
+        //     vector<float> f2(6, 0.0f);
+        //     f2[0] = force2.x;
+        //     f2[1] = force2.y;
+        //     f2[2] = force2.z;
+        //     return f2;
+        // };
+        // planet1->update(t,dt,0.2);
+        // mat4 planet1MVP = projectionMatrix * viewMatrix * planet1->modelMatrix;
+        // glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &planet1MVP[0][0]);
+        // glActiveTexture(GL_TEXTURE3);
+        // planet1->bindTexture();
+        // glUniform1i(textureSampler, 3);
+        // planet1->bind();
+        // planet1->draw();
+
+
+        /*
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         glActiveTexture(GL_TEXTURE0);
@@ -428,6 +471,7 @@ void mainLoop() {
         glUniformMatrix4fv( bone_matrices_locations[0], first_animation->bone_count, GL_FALSE, first_animation->bone_animation_mats[0].m );
         first_animation->draw();
 
+        */
 
         glfwSwapBuffers(window);
         glfwPollEvents();
