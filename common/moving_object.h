@@ -20,7 +20,6 @@ public:
     void load_mesh(std::string mesh_path);
     void loadTexture(const std::string& filename);
     void bind();
-    glm::vec3 seek();
     void update(float t, float dt, float size);
     void bindTexture();
     void draw();

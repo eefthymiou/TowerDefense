@@ -39,8 +39,8 @@ void createContext();
 void mainLoop();
 void free();
 
-#define W_WIDTH 1024
-#define W_HEIGHT 768
+#define W_WIDTH 1024*1.2
+#define W_HEIGHT 768*1.2
 #define TITLE "Tower Defense"
 
 // Global variables
@@ -90,7 +90,6 @@ GLuint model_mat_location;
 GLuint view_mat_location;
 GLuint proj_mat_location;
 int bone_matrices_locations[MAX_BONES];
-
 
 
 void createContext() {
@@ -216,7 +215,7 @@ void createContext() {
     vec3 target = vec3(14.0f,2.0f,14.0f);
     vec3 vel = vec3(0.01f,1.01f,0.01f);
     float mass = 2.0f;
-    int ammo = 1000;
+    int ammo = 500;
     first_aircraft = new Aircraft(position,vel,mass,target,ammo);
     first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
@@ -324,10 +323,12 @@ void free() {
     glfwTerminate();
 }
 
-float get_random_pos(){
+vec3 get_random_pos(){
     int N = 10;
-    float pos = rand() % N + 4.0f;
-    return pos;
+    float x = rand() % N + 4.0f;
+    float y = rand() % N + 0.5f;
+    float z = rand() % N + 4.0f;
+    return vec3(x,y,z);
 }
 
 void mainLoop() {
@@ -351,7 +352,22 @@ void mainLoop() {
     float t = glfwGetTime();
     float timmer = 0.0f;
     int direction =1;
-    float pos = get_random_pos();
+
+    // vector<vec3> ammo_positions;
+    // vector<vec3> *pointer = &ammo_positions;
+
+
+    vector<package_ammo> ammo_packages;
+    package_ammo temp_package_ammo;
+    vec3 position;
+
+    for (int i=0; i<3; i++) { 
+        temp_package_ammo.position = get_random_pos();
+        temp_package_ammo.available = true;
+        ammo_packages.push_back(temp_package_ammo);
+        cout<<ammo_packages.size()<<endl;
+    }
+
     do {
         /*
         static double previous_seconds = glfwGetTime();
@@ -366,7 +382,7 @@ void mainLoop() {
         // float dt = currentTime - t;
         float dt = 0.1;
         timmer += dt;
-        
+
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -447,25 +463,10 @@ void mainLoop() {
         glUniform1i(textureSampler, 1); 
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
-        // ammo
-        glBindVertexArray(ammoVAO);
-        size = 0.03;
-        Scaling = glm::scale(mat4(), vec3(size,size,size));
-        Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
         
-        vec3 ammo_position = vec3(pos,pos/4+2,pos);
-        Translate = glm::translate(mat4(),ammo_position);
-        mat4 ammoModelMatrix = Translate * Rotate * Scaling;
-        mat4 ammoMVP = projectionMatrix * viewMatrix * ammoModelMatrix;
-        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ammoMVP[0][0]);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, ammoTexture);
-        glUniform1i(textureSampler, 3); 
-        glDrawArrays(GL_TRIANGLES, 0, ammoVertices.size());
-
         // aircraft
         size = 0.08; 
-        if(first_aircraft->handle_ammo(ammo_position)) pos = get_random_pos();
+        first_aircraft->handle_ammo(&ammo_packages);
         if (distance(first_aircraft->x, first_aircraft->target)>0.01){
             vec3 force1 = first_aircraft->seek();
             first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
@@ -487,6 +488,25 @@ void mainLoop() {
         first_aircraft->bind();
         first_aircraft->draw();
 
+        // ammo
+        glBindVertexArray(ammoVAO);
+        size = 0.03;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, ammoTexture);
+        glUniform1i(textureSampler, 3); 
+        vec3 ammo_position;
+        mat4 ammoModelMatrix;
+        mat4 ammoMVP;
+        for (int i=0; i<ammo_packages.size(); i++){
+            ammo_position = ammo_packages[i].position;
+            Translate = glm::translate(mat4(),ammo_position);
+            ammoModelMatrix = Translate * Rotate * Scaling;
+            ammoMVP = projectionMatrix * viewMatrix * ammoModelMatrix;
+            glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ammoMVP[0][0]);
+            glDrawArrays(GL_TRIANGLES, 0, ammoVertices.size());
+        }
 
         // float distance = length(planet1->x-planet1->target);
         // if (distance<2.0f) {
