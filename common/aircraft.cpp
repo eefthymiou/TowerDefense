@@ -23,9 +23,10 @@ using namespace std;
 
 
 
-Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a) : 
+Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a,int i) : 
     Moving_obj(pos,vel,mass,t) {
         ammo = a;
+        id = i;
         initial_target = t;
         find_ammo = false;
 }
@@ -67,6 +68,7 @@ void Aircraft::sortest_path_for_ammo(std::vector<package_ammo> *ammo_packages){
     }
     // set ammo_package available to false
     (*ammo_packages)[thesi].available = false;
+    (*ammo_packages)[thesi].who_can_erase_it = id;
     target = (*ammo_packages)[thesi].position;
 
 }
@@ -89,12 +91,12 @@ void generate_package(std::vector<package_ammo> *ammo_packages){
     (*ammo_packages).push_back(temp_package_ammo);
 }
 
-void erase_package(std::vector<package_ammo> *ammo_packages){
+void Aircraft::erase_package(std::vector<package_ammo> *ammo_packages){
     vector<package_ammo>::iterator it;
     it = (*ammo_packages).begin();
     
     for (int i=0; i<(*ammo_packages).size(); i+=1){
-        if ((*ammo_packages)[i].available == false){
+        if ((*ammo_packages)[i].available == false && (*ammo_packages)[i].who_can_erase_it == id){
             (*ammo_packages).erase(it+i);
         }
     }

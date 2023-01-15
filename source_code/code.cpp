@@ -48,6 +48,7 @@ GLFWwindow* window;
 Camera* camera;
 Animation* first_animation;
 Aircraft* first_aircraft;
+Aircraft* second_aircraft;
 Moving_obj* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
@@ -216,9 +217,22 @@ void createContext() {
     vec3 vel = vec3(0.01f,1.01f,0.01f);
     float mass = 2.0f;
     int ammo = 500;
-    first_aircraft = new Aircraft(position,vel,mass,target,ammo);
+    int id = 0;
+    first_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
     first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+
+
+    position = vec3(14.0f,2.0f,14.0f);
+    target = vec3(4.0f,2.0f,4.0f);
+    vel = vec3(1.01f,1.01f,0.01f);
+    mass = 2.0f;
+    ammo = 500;
+    id = 1;
+    second_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
+    second_aircraft->load_mesh("../OBJ_files/aircraft.obj");
+    second_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+
 
     // planet
     position = vec3(4.0f, 2.0f, 14.0f);
@@ -361,7 +375,7 @@ void mainLoop() {
     package_ammo temp_package_ammo;
     vec3 position;
 
-    for (int i=0; i<3; i++) { 
+    for (int i=0; i<5; i++) { 
         temp_package_ammo.position = get_random_pos();
         temp_package_ammo.available = true;
         ammo_packages.push_back(temp_package_ammo);
@@ -464,7 +478,7 @@ void mainLoop() {
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
         
-        // aircraft
+        // first aircraft
         size = 0.08; 
         first_aircraft->handle_ammo(&ammo_packages);
         if (distance(first_aircraft->x, first_aircraft->target)>0.01){
@@ -478,8 +492,6 @@ void mainLoop() {
             };
             first_aircraft->update(t,dt,size);
         }
-        // cout <<"force: " + to_string(force) << endl;
-        // cout <<"vel: " + to_string(first_aircraft->v) << endl;
         mat4 aircraftMVP = projectionMatrix * viewMatrix * first_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
         glActiveTexture(GL_TEXTURE2);
@@ -487,6 +499,27 @@ void mainLoop() {
         glUniform1i(textureSampler, 2);
         first_aircraft->bind();
         first_aircraft->draw();
+
+        // second aircraft
+        second_aircraft->handle_ammo(&ammo_packages);
+        if (distance(second_aircraft->x, second_aircraft->target)>0.01){
+            vec3 force2 = second_aircraft->seek();
+            second_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                vector<float> f2(6, 0.0f);
+                f2[0] = force2.x;
+                f2[1] = force2.y;
+                f2[2] = force2.z;
+                return f2;
+            };
+            second_aircraft->update(t,dt,size);
+        }
+        aircraftMVP = projectionMatrix * viewMatrix * second_aircraft->modelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
+        glActiveTexture(GL_TEXTURE2);
+        first_aircraft->bindTexture();
+        glUniform1i(textureSampler, 2);
+        second_aircraft->bind();
+        second_aircraft->draw();
 
         // ammo
         glBindVertexArray(ammoVAO);
