@@ -12,8 +12,6 @@ uniform mat4 view, proj;
 uniform mat4 bone_matrices[64];
 
 // out vec3 normal;
-// out vec2 st;
-
 
 out vec3 colour;
 out vec2 UV;
@@ -42,11 +40,12 @@ void main() {
     else if (bone_id==19) colour = vec3(0.584445162709545, 0.6034063001643226, 0.8712207434795478);
     else colour = vec3 (1.0, 0.0, 0.0);
    
-    
-    // st = texture_coord;
+
 	// normal = vertex_normal;
     mat4 MVP = proj * view * model *  bone_matrices[bone_id];
     // mat4 MVP = proj * view * model;
+
+
     gl_Position = MVP * vec4 (vertex_position, 1.0);
     UV = texture_coord;
 }

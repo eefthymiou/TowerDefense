@@ -3,9 +3,15 @@ cmake_minimum_required(VERSION 3.0)
 project(VVR_OGL_LABORATORY)
 
 ###############################################################################
-
 find_package(OpenGL REQUIRED)
 
+if(UNIX OR APPLE)
+    find_package(TBB REQUIRED)
+endif()
+
+
+
+set (CMAKE_CXX_STANDARD 17)
 # c++11, -g option is used to export debug symbols for gdb
 if(${CMAKE_CXX_COMPILER_ID} MATCHES GNU OR
     ${CMAKE_CXX_COMPILER_ID} MATCHES Clang)
@@ -13,13 +19,13 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES GNU OR
   # libc++ is an implementation of the C++ standard library for OSX.
   if(APPLE)
     if(XCODE)
-      set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++11")
+      set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++17")
       set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
     else()
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -stdlib=libc++")
     endif()
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -g")
   endif()
 endif()
 
@@ -35,6 +41,10 @@ mark_as_advanced(CMAKE_RELEASE_POSTFIX)
 mark_as_advanced(CMAKE_DEBUG_POSTFIX)
 mark_as_advanced(CMAKE_RELWITHDEBINFO_POSTFIX)
 mark_as_advanced(CMAKE_MINSIZEREL_POSTFIX)
+
+# ctest
+include(CTest)
+enable_testing()
 
 # for rdm (emacs)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -64,6 +74,23 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/external/rpavlik-cmake-module
 include(CreateLaunchers)
 include(MSVCMultipleProcessCompile) # /MP
 
+
+########### Dear ImGui import code
+set(IMGUI_PATH ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui)
+add_library(imgui 
+        ${IMGUI_PATH}/imgui.cpp
+        ${IMGUI_PATH}/imgui_draw.cpp
+        ${IMGUI_PATH}/imgui_demo.cpp
+        ${IMGUI_PATH}/imgui_tables.cpp
+        ${IMGUI_PATH}/imgui_widgets.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_PATH}/backends/imgui_impl_opengl3.cpp)
+target_compile_definitions(imgui PUBLIC -DIMGUI_IMPL_OPENGL_LOADER_GLEW)
+target_include_directories(imgui PUBLIC ${IMGUI_PATH}/ ${IMGUI_PATH}/backends/)
+
+target_link_libraries(imgui GLEW_1130 glfw)
+
+
 ###############################################################################
 
 include_directories(
@@ -74,6 +101,7 @@ include_directories(
   external/tinyxml2/include/
   external/tinyobjloader/include/
   external/assimp/inlcude/assimp
+  source_code/
   .
   )
 
@@ -83,6 +111,7 @@ set(ALL_LIBS
   GLEW_1130
   SOIL
   TINYXML2
+  imgui
   assimp
   )
 
@@ -119,6 +148,10 @@ add_executable(source_code
   common/aircraft.h
   common/moving_object.cpp
   common/moving_object.h
+  common/IntParticleEmitter.cpp
+  common/IntParticleEmitter.h
+  common/FireEmitter.cpp
+  common/FireEmitter.h
   
   
 
@@ -128,6 +161,9 @@ add_executable(source_code
   shaders/assimp.fragmentshader
   shaders/grid.vertexshader
   shaders/grid.fragmentshader
+  shaders/ParticleShader.vertexshader
+  shaders/ParticleShader.fragmentshader
+
   )
 
 target_link_libraries(source_code

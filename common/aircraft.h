@@ -15,6 +15,9 @@ struct package_ammo {
   int who_can_erase_it;
 };
 
+
+glm::vec3 get_random_pos();
+
 class Aircraft :  public Moving_obj {
 public:
     Aircraft(glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t,int a,int id);

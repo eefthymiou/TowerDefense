@@ -37,16 +37,16 @@ vec3 Aircraft::seek(){
     // cout << length(v) << endl;
     float distance = length(x-target);
     // cout << distance << endl;
+
     if (distance<4.0f && arrives) {
         // the aircraft soon arrives to the target point
         float m = (distance/4.0f) * (maxspeed);
         desired = normalize(desired) * m; 
-        steer = desired-v;
     }
-    else {
-        desired = normalize(desired) * maxspeed;
-        steer = desired-v;
-    }
+
+    else desired = normalize(desired) * maxspeed;
+    steer = desired-v;
+
     steer = glm::clamp(steer, -maxforce, maxforce);
     // cout << length(steer) << endl;
     return steer;
@@ -73,7 +73,7 @@ void Aircraft::sortest_path_for_ammo(std::vector<package_ammo> *ammo_packages){
 
 }
 
-vec3 random_pos(){
+vec3 get_random_pos(){
     int N = 10;
     float x = rand() % N + 4.0f;
     float y = rand() % N + 0.5f;
@@ -86,7 +86,7 @@ void generate_package(std::vector<package_ammo> *ammo_packages){
     package_ammo temp_package_ammo;
     vec3 position;
 
-    temp_package_ammo.position = random_pos();
+    temp_package_ammo.position = get_random_pos();
     temp_package_ammo.available = true;
     (*ammo_packages).push_back(temp_package_ammo);
 }
@@ -104,15 +104,14 @@ void Aircraft::erase_package(std::vector<package_ammo> *ammo_packages){
 }
 
 
-
-
+// true->it fires in tower
 bool Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages){
     float distance = length(x-target);
     // cout << ammo << endl;
     if (ammo>0 && distance<5.0f){
         // start shoot... decreases ammo
         ammo-=1;
-        return false;
+        return true;
     }
     else if  (ammo==0 && distance<1.0f && find_ammo == true){
         // aircraft now has ammo... return to the tower
@@ -122,7 +121,7 @@ bool Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages){
         ammo = 500;
         find_ammo = false;
         arrives = true;
-        return true;
+        return false;
     }
 
     else if (ammo==0 && find_ammo==false){

@@ -1,8 +1,6 @@
 #version 410
 
 // in vec3 normal;
-// in vec2 st;
-
 
 in vec2 UV;
 in vec3 colour;

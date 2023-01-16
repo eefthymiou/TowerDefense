@@ -29,6 +29,13 @@
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
 
+#include <chrono>
+using namespace std::chrono;
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+
 
 using namespace std;
 using namespace glm;
@@ -39,8 +46,8 @@ void createContext();
 void mainLoop();
 void free();
 
-#define W_WIDTH 1024*1.2
-#define W_HEIGHT 768*1.2
+#define W_WIDTH 1024
+#define W_HEIGHT 768
 #define TITLE "Tower Defense"
 
 // Global variables
@@ -92,6 +99,20 @@ GLuint view_mat_location;
 GLuint proj_mat_location;
 int bone_matrices_locations[MAX_BONES];
 
+glm::vec4 background_color = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
+
+void renderHelpingWindow(){
+    ImGui::Begin("Helper Window");                          // Create a window called "Hello, world!" and append into it.
+
+    ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+    ImGui::ColorEdit3("Background", &background_color[0]);
+    
+    ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+    
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
 
 void createContext() {
     // Create and compile our GLSL program from the shaders
@@ -216,7 +237,7 @@ void createContext() {
     vec3 target = vec3(14.0f,2.0f,14.0f);
     vec3 vel = vec3(0.01f,1.01f,0.01f);
     float mass = 2.0f;
-    int ammo = 500;
+    int ammo = 0;
     int id = 0;
     first_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
     first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
@@ -227,11 +248,11 @@ void createContext() {
     target = vec3(4.0f,2.0f,4.0f);
     vel = vec3(1.01f,1.01f,0.01f);
     mass = 2.0f;
-    ammo = 500;
+    ammo = 0;
     id = 1;
     second_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
-    second_aircraft->load_mesh("../OBJ_files/aircraft.obj");
-    second_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+    // second_aircraft->load_mesh("../OBJ_files/aircraft.obj");
+    // second_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
 
 
     // planet
@@ -306,8 +327,8 @@ void createContext() {
 
     // load texture for quad
     // quadtexture = loadSOIL("../Textures/floor_grass.jpg");
-    // quadtexture = loadBMP("../BML_files/lava.bmp");
-    quadtexture = loadSOIL("../Textures/1.png");
+    quadtexture = loadBMP("../BML_files/lava.bmp");
+    // quadtexture = loadSOIL("../Textures/1.png");
 
     // uvs VBO
     glGenBuffers(1, &quadUVVBO);
@@ -337,15 +358,17 @@ void free() {
     glfwTerminate();
 }
 
-vec3 get_random_pos(){
-    int N = 10;
-    float x = rand() % N + 4.0f;
-    float y = rand() % N + 0.5f;
-    float z = rand() % N + 4.0f;
-    return vec3(x,y,z);
-}
 
 void mainLoop() {
+
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+
     glm::vec3 translations[100];
     int index = 0;
     float offset = 5.0f;
@@ -365,15 +388,19 @@ void mainLoop() {
 
     float t = glfwGetTime();
     float timmer = 0.0f;
-    int direction =1;
-
-    // vector<vec3> ammo_positions;
-    // vector<vec3> *pointer = &ammo_positions;
-
+    int direction = 1;
 
     vector<package_ammo> ammo_packages;
     package_ammo temp_package_ammo;
     vec3 position;
+    int health_tower1 = 2000;
+    int health_tower2 = 2000;
+    bool game_ends = false;
+    string winner = "";
+
+    vec3 ammo_position;
+    mat4 ammoModelMatrix;
+    mat4 ammoMVP;
 
     for (int i=0; i<5; i++) { 
         temp_package_ammo.position = get_random_pos();
@@ -392,6 +419,11 @@ void mainLoop() {
         anim_time += elapsed_seconds * 200.0;
         if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
         */
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        glClearColor(background_color[0], background_color[1], background_color[2], background_color[3]);
+
         float currentTime = glfwGetTime();
         // float dt = currentTime - t;
         float dt = 0.1;
@@ -480,7 +512,14 @@ void mainLoop() {
         
         // first aircraft
         size = 0.08; 
-        first_aircraft->handle_ammo(&ammo_packages);
+        if (first_aircraft->handle_ammo(&ammo_packages)){
+            // true -> health_tower -1 
+            health_tower2 -=1;
+            if (health_tower2 == 0){
+                game_ends = true;
+                winner = "tower 1";
+            }
+        }
         if (distance(first_aircraft->x, first_aircraft->target)>0.01){
             vec3 force1 = first_aircraft->seek();
             first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
@@ -501,7 +540,14 @@ void mainLoop() {
         first_aircraft->draw();
 
         // second aircraft
-        second_aircraft->handle_ammo(&ammo_packages);
+        if (second_aircraft->handle_ammo(&ammo_packages)){
+            // true -> health_tower -1 
+            health_tower1 -=1;
+            if (health_tower1 == 0){
+                game_ends = true;
+                winner = "tower 2";
+            }
+        }
         if (distance(second_aircraft->x, second_aircraft->target)>0.01){
             vec3 force2 = second_aircraft->seek();
             second_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
@@ -515,11 +561,11 @@ void mainLoop() {
         }
         aircraftMVP = projectionMatrix * viewMatrix * second_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
-        glActiveTexture(GL_TEXTURE2);
-        first_aircraft->bindTexture();
-        glUniform1i(textureSampler, 2);
-        second_aircraft->bind();
-        second_aircraft->draw();
+        // glActiveTexture(GL_TEXTURE2);
+        // first_aircraft->bindTexture();
+        // glUniform1i(textureSampler, 2);
+        first_aircraft->bind();
+        first_aircraft->draw();
 
         // ammo
         glBindVertexArray(ammoVAO);
@@ -529,9 +575,6 @@ void mainLoop() {
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, ammoTexture);
         glUniform1i(textureSampler, 3); 
-        vec3 ammo_position;
-        mat4 ammoModelMatrix;
-        mat4 ammoMVP;
         for (int i=0; i<ammo_packages.size(); i++){
             ammo_position = ammo_packages[i].position;
             Translate = glm::translate(mat4(),ammo_position);
@@ -580,14 +623,18 @@ void mainLoop() {
         glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
         glUniformMatrix4fv( bone_matrices_locations[0], first_animation->bone_count, GL_FALSE, first_animation->bone_animation_mats[0].m );
         first_animation->draw();
-
         */
 
+        renderHelpingWindow();
         glfwSwapBuffers(window);
         glfwPollEvents();
         
         t +=dt;
-        
+
+        if (game_ends) {
+            cout << "the winner is :" + winner << endl; 
+            break;
+        }
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) == 0);
 }
