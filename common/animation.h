@@ -49,6 +49,7 @@ public:
     my_mat4 bone_offset_matrices[MAX_BONES];
     glm::mat4 modelMatrix;
     GLuint Texture;
+    float size = 1.0f;
 
     glm::vec3 get_root(glm::vec3 prev_translation);
 

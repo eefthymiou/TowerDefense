@@ -65,6 +65,7 @@ GLuint gMVPLocation;
 GLuint assimpMVPLocation;
 GLuint translationsLocation;
 GLuint textureSampler;
+GLuint assimptextureSampler;
 GLuint gtextureSampler;
 GLuint texture,ninjatexture;
 GLuint quadtexture;
@@ -97,7 +98,12 @@ std::vector<vec2> ammoUVs;
 GLuint model_mat_location;
 GLuint view_mat_location;
 GLuint proj_mat_location;
+
+// gui variables
 int bone_matrices_locations[MAX_BONES];
+bool game_paused = true;
+int health_tower1 = 20000;
+int health_tower2 = 20000;
 
 glm::vec4 background_color = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 
@@ -106,7 +112,8 @@ void renderHelpingWindow(){
 
     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
     ImGui::ColorEdit3("Background", &background_color[0]);
-    
+    ImGui::Text("Health tower 1: %d",health_tower1);
+    ImGui::Text("Health tower 2: %d",health_tower2);
     ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
     
@@ -223,7 +230,6 @@ void createContext() {
     glEnableVertexAttribArray(0);
 
     ammoTexture = loadSOIL("../Textures/ammo/box_fin_DefaultMaterial_BaseColor.tga");
-    // ammoTexture = loadSOIL("../Textures/ammo/Ambient Occlusion Map from Mesh DefaultMaterial.png");
     
     // uvs VBO
     glGenBuffers(1, &ammoUVVBO);
@@ -267,14 +273,20 @@ void createContext() {
     planet1->maxspeed = 10.0f;
 
     // amimation
-    /*
+    
+    // first_animation = new Animation("../Models/robot_without_animation.dae");
+    // first_animation->loadTexture("../Models/Texture_0.jpg");
+    // first_animation-> size = 0.01;
+
     first_animation = new Animation("../Models/monkey_with_anim.dae");
     first_animation->loadTexture("../Models/Texture_0.jpg");
+
 
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
     model_mat_location = glGetUniformLocation(assimp_shader, "model");
     view_mat_location = glGetUniformLocation(assimp_shader, "view");
     proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
+    assimptextureSampler = glGetUniformLocation(assimp_shader, "textureSampler");
     printf ("monkey bone count %i\n", first_animation->bone_count);
 
     char name[64];
@@ -283,7 +295,7 @@ void createContext() {
         bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
         glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
     }
-    */
+    
 
     gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
 
@@ -327,8 +339,8 @@ void createContext() {
 
     // load texture for quad
     // quadtexture = loadSOIL("../Textures/floor_grass.jpg");
-    quadtexture = loadBMP("../BML_files/lava.bmp");
-    // quadtexture = loadSOIL("../Textures/1.png");
+    // quadtexture = loadBMP("../BML_files/lava.bmp");
+    quadtexture = loadSOIL("../Textures/1.png");
 
     // uvs VBO
     glGenBuffers(1, &quadUVVBO);
@@ -393,8 +405,6 @@ void mainLoop() {
     vector<package_ammo> ammo_packages;
     package_ammo temp_package_ammo;
     vec3 position;
-    int health_tower1 = 2000;
-    int health_tower2 = 2000;
     bool game_ends = false;
     string winner = "";
 
@@ -410,7 +420,7 @@ void mainLoop() {
     }
 
     do {
-        /*
+        
         static double previous_seconds = glfwGetTime();
         double current_seconds         = glfwGetTime();
         double elapsed_seconds         = current_seconds - previous_seconds;
@@ -418,7 +428,7 @@ void mainLoop() {
 
         anim_time += elapsed_seconds * 200.0;
         if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
-        */
+        
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -435,6 +445,20 @@ void mainLoop() {
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
+
+        glEnable( GL_DEPTH_TEST );
+        glUseProgram(assimp_shader);
+        glActiveTexture(GL_TEXTURE0);
+        first_animation->bindTexture();
+        glUniform1i(assimptextureSampler, 0);
+        first_animation->bind();
+        first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
+        first_animation->update();
+        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_animation->modelMatrix[0][0]);
+        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+        glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
+        glUniformMatrix4fv( bone_matrices_locations[0], first_animation->bone_count, GL_FALSE, first_animation->bone_animation_mats[0].m );
+        first_animation->draw();
 
         // use grid shader
         glUseProgram(gridshader);
@@ -607,23 +631,7 @@ void mainLoop() {
         // glUniform1i(textureSampler, 3);
         // planet1->bind();
         // planet1->draw();
-
-
-        /*
-        glEnable( GL_DEPTH_TEST );
-        glUseProgram(assimp_shader);
-        glActiveTexture(GL_TEXTURE0);
-        first_animation->bindTexture();
-        glUniform1i(textureSampler, 0);
-        first_animation->bind();
-        first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
-        first_animation->update();
-        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_animation->modelMatrix[0][0]);
-        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
-        glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
-        glUniformMatrix4fv( bone_matrices_locations[0], first_animation->bone_count, GL_FALSE, first_animation->bone_animation_mats[0].m );
-        first_animation->draw();
-        */
+        
 
         renderHelpingWindow();
         glfwSwapBuffers(window);
@@ -695,70 +703,9 @@ void initialize() {
     camera = new Camera(window);
 }
 void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    // bool monkey_moved = false;
-    // if (glfwGetKey (window, 'Z')) {
-    //     theta += rot_speed * elapsed_seconds;
-    //     g_local_anims[0] = rotate_z_deg (identity_mat4 (), theta);
-    //     g_local_anims[1] = rotate_z_deg (identity_mat4 (), -theta);
-    //     monkey_moved = true;
-    // }
-    // if (glfwGetKey (window, 'X')) {
-    //     theta -= rot_speed * elapsed_seconds;
-    //     g_local_anims[0] = rotate_z_deg (identity_mat4 (), theta);
-    //     g_local_anims[1] = rotate_z_deg (identity_mat4 (), -theta);
-    //     monkey_moved = true;
-    // }
-    // if (glfwGetKey (window, 'C')) {
-    //     y -= 0.5f * elapsed_seconds;
-    //     g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, y, 0.0f));
-    //     monkey_moved = true;
-    // }
-    // if (glfwGetKey (window, 'V')) {
-    //     y += 0.5f * elapsed_seconds;
-    //     g_local_anims[2] = translate (identity_mat4 (), vec3 (0.0f, y, 0.0f));
-    //     monkey_moved = true;
-    // }
-    // if (monkey_moved) {
-    //     skeleton_animate (
-    //     monkey_root_node,
-    //     identity_mat4 (),
-    //     monkey_bone_offset_matrices,
-    //     monkey_bone_animation_mats
-    // );
-    // glUseProgram (assimp_shader);
-    // glUniformMatrix4fv (
-    //     bone_matrices_locations[0],
-    //     monkey_bone_count,
-    //     GL_FALSE,
-    //     monkey_bone_animation_mats[0].m
-    //     );
-    // }
-    
-    
-    // Task 2.1:
-   
-
-    /*
-    // Task 3.4: toggle polygon mode
-    if (key == GLFW_KEY_T && action == GLFW_PRESS) {
-        GLint polygonMode[2];
-        glGetIntegerv(GL_POLYGON_MODE, &polygonMode[0]);
-
-        // if GL_LINE, if GL_FILL check with polygonMode[0]
-        if (polygonMode[0] == GL_LINE) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        if (polygonMode[0] == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+        game_paused = !game_paused;
     }
-
-    // Task 4.1a: change the detachment coefficient using U, O keys
-    // Use variable: detachmentCoeff
-    if (key == GLFW_KEY_U) {
-        detachmentCoeff += 0.03; 
-    }
-    if (key == GLFW_KEY_O) {
-        detachmentCoeff -= 0.03;
-        if (detachmentCoeff<0) detachmentCoeff = 0.01f;
-    }
-    */
 }
 
 int main(void) {
