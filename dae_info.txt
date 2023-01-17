@@ -1,0 +1,36 @@
+// suzanne 
+  1 animations
+  0 cameras
+  0 lights
+  1 materials
+  1 meshes
+  0 textures
+    2904 vertices in mesh[0]
+bone_names[0]=Armature_Bone_001
+bone_names[1]=Armature_Bone_002
+bone_names[2]=Armature_Bone
+-node name = Scene
+node has 1 children
+no bone found for node
+-node name = Armature
+node has 2 children
+no bone found for node
+-node name = Armature_Bone
+node has 2 children
+node uses bone 2
+-node name = Armature_Bone_001
+node has 0 children
+node uses bone 0
+-node name = Armature_Bone_002
+node has 0 children
+node uses bone 1
+-node name = Suzanne
+node has 0 children
+no bone found for node
+useless child culled
+animation name: Armature_Armature
+animation has 3 node channels
+animation has 0 mesh channels
+animation duration 833.333313
+ticks per second 1000.000000
+anim duration is 833.333313

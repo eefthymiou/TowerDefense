@@ -87,20 +87,19 @@ std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices
 std::vector<vec2> UVs, ninjaUVs,sphereUVs;
 std::vector<vec2> quadUVs;
 
-std::vector<vec3> aircraftVertices, aircraftNormals;
-std::vector<vec2> aircraftUVs;
 std::vector<vec3> cubeVertices, cubeNormals;
 std::vector<vec2> cubeUVs;
 std::vector<vec3> ammoVertices, ammoNormals;
 std::vector<vec2> ammoUVs;
 
 
+// assimp model locations
 GLuint model_mat_location;
 GLuint view_mat_location;
 GLuint proj_mat_location;
+int bone_matrices_locations[MAX_BONES];
 
 // gui variables
-int bone_matrices_locations[MAX_BONES];
 bool game_paused = true;
 int health_tower1 = 20000;
 int health_tower2 = 20000;
@@ -274,12 +273,12 @@ void createContext() {
 
     // amimation
     
-    // first_animation = new Animation("../Models/robot_without_animation.dae");
-    // first_animation->loadTexture("../Models/Texture_0.jpg");
-    // first_animation-> size = 0.01;
-
-    first_animation = new Animation("../Models/monkey_with_anim.dae");
+    first_animation = new Animation("../Models/test.dae");
     first_animation->loadTexture("../Models/Texture_0.jpg");
+    first_animation-> size = 0.01;
+
+    // first_animation = new Animation("../Models/monkey_with_anim.dae");
+    // first_animation->loadTexture("../Models/Texture_0.jpg");
 
 
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
@@ -588,7 +587,6 @@ void mainLoop() {
         // glActiveTexture(GL_TEXTURE2);
         // first_aircraft->bindTexture();
         // glUniform1i(textureSampler, 2);
-        first_aircraft->bind();
         first_aircraft->draw();
 
         // ammo
