@@ -44,7 +44,8 @@ void main() {
 
 	// normal = vertex_normal;
     mat4 pinax = mat4(0.01);
-    mat4 MVP = proj * view * model *  (bone_matrices[bone_id]);
+    mat4 MVP = proj * view * model * bone_matrices[bone_id];
+    
     // mat4 MVP = proj * view * model;
 
 

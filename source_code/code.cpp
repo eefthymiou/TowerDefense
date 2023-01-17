@@ -273,7 +273,7 @@ void createContext() {
 
     // amimation
     
-    first_animation = new Animation("../Models/test.dae");
+    first_animation = new Animation("../Models/finale2.dae");
     first_animation->loadTexture("../Models/Texture_0.jpg");
     first_animation-> size = 0.01;
 
