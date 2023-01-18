@@ -23,6 +23,7 @@
 #include <common/aircraft.h>
 #include <common/animation.h>
 #include <common/moving_object.h>
+#include <common/robot.h>
 // #include "common/gl_utils.h"
 
 #include <assimp/scene.h>
@@ -55,9 +56,9 @@ void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mod
 // Global variables
 GLFWwindow* window;
 Camera* camera;
-Animation* first_animation;
 Aircraft* first_aircraft;
 Aircraft* second_aircraft;
+Robot* first_robot;
 Moving_obj* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
@@ -241,63 +242,67 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // aircraft
-    vec3 position = vec3(0.0f,2.0f,4.0f);
+    vec3 position = vec3(14.0f,2.0f,0.0f);
     vec3 target = vec3(14.0f,2.0f,14.0f);
-    vec3 vel = vec3(0.01f,1.01f,0.01f);
+    vec3 vel = vec3(0.01f,0.01f,0.01f);
     float mass = 2.0f;
-    int ammo = 0;
+    int ammo = 500;
     int id = 0;
     first_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
     first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+    first_aircraft->at_tower_pos =  vec3(16.0f,0.0f,16.0f);
+    first_aircraft->size =  0.08;
 
-
-    position = vec3(14.0f,2.0f,14.0f);
+    position = vec3(0.0f,2.0f,14.0f);
     target = vec3(4.0f,2.0f,4.0f);
-    vel = vec3(1.01f,1.01f,0.01f);
+    vel = vec3(1.01f,0.01f,0.01f);
     mass = 2.0f;
-    ammo = 0;
+    ammo = 500;
     id = 1;
     second_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
+    second_aircraft->at_tower_pos = vec3(2.0f,0.0f,2.0f);
+    second_aircraft->size =  0.08;
     // second_aircraft->load_mesh("../OBJ_files/aircraft.obj");
     // second_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
 
 
     // planet
-    position = vec3(4.0f, 2.0f, 14.0f);
-    target = vec3(6.0f,2.0f,4.0f);
-    vel = vec3(1.0f,1.0f,1.0f);
-    planet1 = new Moving_obj(position,vel,mass,target);
-    planet1->load_mesh("../OBJ_files/sphere.obj");
-    planet1->loadTexture("../Textures/2k_mars.jpg");
-    planet1->arrives = false;
-    planet1->maxforce = 10.0f;
-    planet1->maxspeed = 10.0f;
+    // position = vec3(4.0f, 2.0f, 14.0f);
+    // target = vec3(6.0f,2.0f,4.0f);
+    // vel = vec3(1.0f,1.0f,1.0f);
+    // planet1 = new Moving_obj(position,vel,mass,target);
+    // planet1->load_mesh("../OBJ_files/sphere.obj");
+    // planet1->loadTexture("../Textures/2k_mars.jpg");
+    // planet1->arrives = false;
+    // planet1->maxforce = 10.0f;
+    // planet1->maxspeed = 10.0f;
 
     // amimation
-    
-    first_animation = new Animation("../Models/finale3.dae");
-    first_animation->loadTexture("../Models/Texture_0.jpg");
-    first_animation-> size = 0.018;
+    position = vec3(0.0f,0.9f,6.0f);
+    target = vec3(10.0f,0.9f,6.0f);
+    vel = vec3(0.01f,0.0f,0.01f);
+    first_robot = new Robot("../Models/finale5.dae",position,vel,mass,target);
+    first_robot->animation_loadTexture("../Models/Texture_0.jpg");
+    first_robot->size = 0.01;
     
     // first_animation = new Animation("../Models/monkey_with_anim.dae");
     // first_animation->loadTexture("../Models/Texture_0.jpg");
-
 
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
     model_mat_location = glGetUniformLocation(assimp_shader, "model");
     view_mat_location = glGetUniformLocation(assimp_shader, "view");
     proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
     assimptextureSampler = glGetUniformLocation(assimp_shader, "textureSampler");
-    printf ("monkey bone count %i\n", first_animation->bone_count);
-
+    printf ("monkey bone count %i\n", first_robot->bone_count);
+    
     char name[64];
     for ( int i = 0; i < MAX_BONES; i++ ) {
         sprintf( name, "bone_matrices[%i]", i );
         bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
         glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
     }
-    
+
 
     gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
 
@@ -397,7 +402,6 @@ void mainLoop() {
             translations[index++] = translation;
         }
     }    
-    double anim_time = 0.0;
     mat4 projectionMatrix,viewMatrix;
     mat4 Scaling,Rotate,Translate;
 
@@ -424,24 +428,12 @@ void mainLoop() {
 
     do {
         
-        static double previous_seconds = glfwGetTime();
-        double current_seconds         = glfwGetTime();
-        double elapsed_seconds         = current_seconds - previous_seconds;
-        previous_seconds               = current_seconds;
-
-        // anim_time += 20.0f;
-        anim_time = 400;
-        // in anim_time = 400 the robot it stands with two feet.
-        
-        if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
-        
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         glClearColor(background_color[0], background_color[1], background_color[2], background_color[3]);
 
-        float currentTime = glfwGetTime();
-        // float dt = currentTime - t;
+
         float dt = 0.1;
         timmer += dt;
 
@@ -456,16 +448,26 @@ void mainLoop() {
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         glActiveTexture(GL_TEXTURE0);
-        first_animation->bindTexture();
+        first_robot->animation_bindTexture();
         glUniform1i(assimptextureSampler, 0);
-        first_animation->bind();
-        // first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
-        first_animation->update();
-        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_animation->modelMatrix[0][0]);
+        first_robot->animation_bind();
+
+        if (distance(first_robot->x, first_robot->target)>0.01){
+            vec3 force0 = first_robot->seek();
+            first_robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                vector<float> f0(6, 0.0f);
+                f0[0] = force0.x;
+                f0[2] = force0.z;
+                return f0;
+            };
+            first_robot->update(t,dt);
+        }
+        first_robot->skeleton_animate(first_robot->root_node,first_robot->anim_time, identity_mat4(),first_robot->bone_offset_matrices, first_robot->bone_animation_mats );
+        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_robot->modelMatrix[0][0]);
         glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
         glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
-        glUniformMatrix4fv( bone_matrices_locations[0], first_animation->bone_count, GL_FALSE, first_animation->bone_animation_mats[0].m );
-        first_animation->draw();
+        glUniformMatrix4fv( bone_matrices_locations[0], first_robot->bone_count, GL_FALSE, first_robot->bone_animation_mats[0].m );
+        first_robot->animation_draw();
 
         // use grid shader
         glUseProgram(gridshader);
@@ -542,7 +544,7 @@ void mainLoop() {
 
         
         // first aircraft
-        size = 0.08; 
+         
         if (first_aircraft->handle_ammo(&ammo_packages)){
             // true -> health_tower -1 
             health_tower2 -=1;
@@ -560,7 +562,7 @@ void mainLoop() {
                 f1[2] = force1.z;
                 return f1;
             };
-            first_aircraft->update(t,dt,size);
+            first_aircraft->update(t,dt);
         }
         mat4 aircraftMVP = projectionMatrix * viewMatrix * first_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
@@ -588,7 +590,7 @@ void mainLoop() {
                 f2[2] = force2.z;
                 return f2;
             };
-            second_aircraft->update(t,dt,size);
+            second_aircraft->update(t,dt);
         }
         aircraftMVP = projectionMatrix * viewMatrix * second_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
@@ -712,20 +714,6 @@ void initialize() {
 void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_P && action == GLFW_PRESS) {
         game_paused = !game_paused;
-    }
-    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-        if (camera->camera_in_animation == false){
-            camera->position = first_animation->position + vec3(2.0f,2.0f,0.0f);
-            // camera->viewMatrix = camera->viewMatrix * glm::rotate(mat4(),glm::radians(-90.0f),vec3(1.0f,0.0f,0.0f));
-            // camera->direction = first_animation->direction;
-            cout << "now you can move the player" << endl;
-            // first_animation->position = camera->position;
-            camera->camera_in_animation = true;
-        }
-        else {
-            camera->position = vec3(2, 4, 20);
-            camera->camera_in_animation = false; 
-        }
     }
 }
 

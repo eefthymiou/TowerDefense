@@ -1,10 +1,6 @@
 #ifndef MOVING_OBJECT_H
 #define MOVING_OBJECT_H
 
-#include <GL/glew.h>
-#include <string>
-#include <map>
-#include <glm/glm.hpp>
 #include "RigidBody.h"
 
 class Moving_obj :  public RigidBody {
@@ -20,7 +16,7 @@ public:
     void load_mesh(std::string mesh_path);
     void loadTexture(const std::string& filename);
     void bind();
-    void update(float t, float dt, float size);
+    glm::vec3 seek();
     void bindTexture();
     void draw();
 
@@ -35,7 +31,6 @@ public:
 
 private:
     void createContext();
-    float map(float x, float in_min, float in_max, float out_min, float out_max);
 };
 
 

@@ -47,11 +47,7 @@ public:
     my_mat4 g_local_anims[MAX_BONES];
     my_mat4 bone_animation_mats[MAX_BONES];
     my_mat4 bone_offset_matrices[MAX_BONES];
-    glm::mat4 modelMatrix;
     GLuint Texture;
-    float size = 1.0f;
-    glm::vec3 position = glm::vec3(0.0f,1.5f,0.0f);
-    glm::vec3 direction = glm::vec3(0.0f,-2.0f,2.0f);
     glm::vec3 get_root(glm::vec3 prev_translation);
 
     void skeleton_animate(
@@ -61,11 +57,10 @@ public:
         my_mat4* bone_offset_mats,
         my_mat4* bone_animation_mats);
 
-    void bind();
-    void update();
-    void draw();
-    void loadTexture(const std::string& filename);
-    void bindTexture();
+    void animation_bind();
+    void animation_draw();
+    void animation_loadTexture(const std::string& filename);
+    void animation_bindTexture();
 };
 
 #endif

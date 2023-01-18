@@ -25,9 +25,10 @@ public:
     int ammo;
     int id;
     bool find_ammo;
+    float size;
     glm::vec3 initial_target;
-    
-    glm::vec3 seek();
+    glm::vec3 at_tower_pos;
+    void update(float t, float dt);
     bool handle_ammo(std::vector<package_ammo> *ammo_posisions);
     void sortest_path_for_ammo(std::vector<package_ammo> *ammo_positions);
 private:

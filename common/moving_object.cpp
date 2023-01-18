@@ -54,11 +54,6 @@ void Moving_obj::load_mesh(string model_path){
 
 
 
-float Moving_obj::map(float x, float in_min, float in_max, float out_min, float out_max) {
-return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-
 void Moving_obj::bind() {
     glBindVertexArray(VAO);
 }
@@ -72,22 +67,27 @@ void Moving_obj::loadTexture(const std::string& filename){
     Texture = loadSOIL(filename.c_str());
 }
 
-void Moving_obj::update(float t, float dt, float size) {
-    //integration
-    advanceState(t, dt);
+vec3 Moving_obj::seek(){
+    vec3 desired = target-x;
+    vec3 steer;
+    // cout << length(v) << endl;
+    float distance = length(x-target);
+    // cout << distance << endl;
 
-    // compute model matrix
-    vec3 v1 = v;
-    v1.y = 0;
-    vec3 direction = normalize(v1);
-    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), direction));
-    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), direction);
-    mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
-    mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
-    mat4 scale = glm::scale(mat4(), vec3(size, size, size));
-    mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));
-    modelMatrix = tranlation * rotation * rotation_x * scale;
+    if (distance<6.0f && arrives) {
+        // the aircraft soon arrives to the target point
+        float m = (distance/6.0f) * (maxspeed);
+        desired = normalize(desired) * m; 
+    }
+
+    else desired = normalize(desired) * maxspeed;
+    steer = desired-v;
+
+    steer = glm::clamp(steer, -maxforce, maxforce);
+    // cout << length(steer) << endl;
+    return steer;
 }
+
 
 void Moving_obj::draw() {
     glDrawArrays(GL_TRIANGLES, 0, Vertices.size());

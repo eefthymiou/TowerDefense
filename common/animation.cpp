@@ -438,31 +438,22 @@ Animation::~Animation(){
     glDeleteBuffers(1, &vao);
 }
 
-void Animation::loadTexture(const std::string& filename){
+void Animation::animation_loadTexture(const std::string& filename){
     if (filename.length() == 0) return;
     Texture = loadSOIL(filename.c_str());
 }
 
-void Animation::bindTexture() {
+void Animation::animation_bindTexture() {
     glBindTexture(GL_TEXTURE_2D, Texture);
 }
 
-void Animation::bind(){
+void Animation::animation_bind(){
     glBindVertexArray( vao );
 }
-void Animation::draw(){
+void Animation::animation_draw(){
     glDrawArrays(GL_TRIANGLES, 0, point_count );
 }
 
-void Animation::update(){
-
-    mat4 Translate = glm::translate(mat4(), position);
-    mat4 Rotate = glm::rotate(mat4(),radians(-90.0f),vec3(0.0f,0.0f,1.0f));
-    // modelMatrix = Translate * Rotate * Scaling;
-    // mat4 Scaling = glm::scale(mat4(), vec3(1.0f,1.0f,size));
-    mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
-    modelMatrix = Translate * Scaling;
-}
 
 
 

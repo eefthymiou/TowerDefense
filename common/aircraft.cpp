@@ -31,26 +31,6 @@ Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a,int i) :
         find_ammo = false;
 }
 
-vec3 Aircraft::seek(){
-    vec3 desired = target-x;
-    vec3 steer;
-    // cout << length(v) << endl;
-    float distance = length(x-target);
-    // cout << distance << endl;
-
-    if (distance<4.0f && arrives) {
-        // the aircraft soon arrives to the target point
-        float m = (distance/4.0f) * (maxspeed);
-        desired = normalize(desired) * m; 
-    }
-
-    else desired = normalize(desired) * maxspeed;
-    steer = desired-v;
-
-    steer = glm::clamp(steer, -maxforce, maxforce);
-    // cout << length(steer) << endl;
-    return steer;
-}
 
 void Aircraft::sortest_path_for_ammo(std::vector<package_ammo> *ammo_packages){
     float dis;
@@ -133,4 +113,20 @@ bool Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages){
         return false;
     }
     return false;
+}
+
+void Aircraft::update(float t, float dt) {
+    //integration
+    advanceState(t, dt);
+
+    vec3 v1 = v;
+    v1.y = 0;
+
+    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), normalize(v1)));
+    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), normalize(v1));
+    mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
+    mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
+    mat4 scale = glm::scale(mat4(), vec3(size, size, size));
+    mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));
+    modelMatrix = tranlation * rotation * rotation_x * scale;
 }
