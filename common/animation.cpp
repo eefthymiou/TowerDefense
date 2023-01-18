@@ -175,7 +175,7 @@ void Animation::skeleton_animate (
         node_R = quat_to_mat4 (slerped);
     } // endif num_rot_keys > 0
 
-    local_anim = node_T * node_R;
+    local_anim =  node_R;
 
     // if node has a weighted bone...
     int bone_i = node->bone_index;
@@ -455,7 +455,8 @@ void Animation::draw(){
 }
 
 void Animation::update(){
-    mat4 Translate = glm::translate(mat4(), vec3(0.0f,3.0f,0.0f));
+
+    mat4 Translate = glm::translate(mat4(), vec3(0.0f,1.5f,0.0f));
     mat4 Rotate = glm::rotate(mat4(),radians(-90.0f),vec3(0.0f,0.0f,1.0f));
     // modelMatrix = Translate * Rotate * Scaling;
     // mat4 Scaling = glm::scale(mat4(), vec3(1.0f,1.0f,size));

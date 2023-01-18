@@ -103,6 +103,7 @@ int bone_matrices_locations[MAX_BONES];
 bool game_paused = true;
 int health_tower1 = 20000;
 int health_tower2 = 20000;
+float height = 0.0f;
 
 glm::vec4 background_color = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 
@@ -110,7 +111,7 @@ void renderHelpingWindow(){
     ImGui::Begin("Helper Window");                          // Create a window called "Hello, world!" and append into it.
 
     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-    ImGui::ColorEdit3("Background", &background_color[0]);
+    ImGui::SliderFloat("height", &height, 0 , 0.0);
     ImGui::Text("Health tower 1: %d",health_tower1);
     ImGui::Text("Health tower 2: %d",health_tower2);
     ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
@@ -273,10 +274,10 @@ void createContext() {
 
     // amimation
     
-    first_animation = new Animation("../Models/finale2.dae");
+    first_animation = new Animation("../Models/finale3.dae");
     first_animation->loadTexture("../Models/Texture_0.jpg");
-    first_animation-> size = 0.01;
-
+    first_animation-> size = 0.018;
+    
     // first_animation = new Animation("../Models/monkey_with_anim.dae");
     // first_animation->loadTexture("../Models/Texture_0.jpg");
 
@@ -425,7 +426,10 @@ void mainLoop() {
         double elapsed_seconds         = current_seconds - previous_seconds;
         previous_seconds               = current_seconds;
 
-        anim_time += elapsed_seconds * 200.0;
+        // anim_time += 20.0f;
+        anim_time = 400;
+        // in anim_time = 400 the robot it stands with two feet.
+        
         if ( anim_time >= first_animation->anim_duration ) { anim_time = first_animation->anim_duration - anim_time; }
         
         ImGui_ImplOpenGL3_NewFrame();
@@ -444,14 +448,15 @@ void mainLoop() {
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
-
+        
+        
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         glActiveTexture(GL_TEXTURE0);
         first_animation->bindTexture();
         glUniform1i(assimptextureSampler, 0);
         first_animation->bind();
-        first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
+        // first_animation->skeleton_animate(first_animation->root_node, anim_time, identity_mat4(),first_animation->bone_offset_matrices, first_animation->bone_animation_mats );
         first_animation->update();
         glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_animation->modelMatrix[0][0]);
         glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );

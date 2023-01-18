@@ -51,6 +51,7 @@ public:
     GLuint Texture;
     float size = 1.0f;
 
+
     glm::vec3 get_root(glm::vec3 prev_translation);
 
     void skeleton_animate(
