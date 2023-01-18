@@ -19,6 +19,8 @@ public:
     float speed; // units / second
     float mouseSpeed;
     float fovSpeed;
+    bool camera_in_animation;
+    glm::vec3 direction;
 
     Camera(GLFWwindow* window);
     void update();

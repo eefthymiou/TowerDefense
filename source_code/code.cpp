@@ -45,6 +45,8 @@ void initialize();
 void createContext();
 void mainLoop();
 void free();
+void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods);
+
 
 #define W_WIDTH 1024
 #define W_HEIGHT 768
@@ -350,6 +352,7 @@ void createContext() {
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    glfwSetKeyCallback(window, pollKeyboard);
 }
 
 void free() {
@@ -705,9 +708,24 @@ void initialize() {
     // Create camera
     camera = new Camera(window);
 }
+
 void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_P && action == GLFW_PRESS) {
         game_paused = !game_paused;
+    }
+    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+        if (camera->camera_in_animation == false){
+            camera->position = first_animation->position + vec3(2.0f,2.0f,0.0f);
+            // camera->viewMatrix = camera->viewMatrix * glm::rotate(mat4(),glm::radians(-90.0f),vec3(1.0f,0.0f,0.0f));
+            // camera->direction = first_animation->direction;
+            cout << "now you can move the player" << endl;
+            // first_animation->position = camera->position;
+            camera->camera_in_animation = true;
+        }
+        else {
+            camera->position = vec3(2, 4, 20);
+            camera->camera_in_animation = false; 
+        }
     }
 }
 

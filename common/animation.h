@@ -50,8 +50,8 @@ public:
     glm::mat4 modelMatrix;
     GLuint Texture;
     float size = 1.0f;
-
-
+    glm::vec3 position = glm::vec3(0.0f,1.5f,0.0f);
+    glm::vec3 direction = glm::vec3(0.0f,-2.0f,2.0f);
     glm::vec3 get_root(glm::vec3 prev_translation);
 
     void skeleton_animate(

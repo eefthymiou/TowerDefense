@@ -12,6 +12,7 @@ Camera::Camera(GLFWwindow* window) : window(window) {
     speed = 5.0f;
     mouseSpeed = 0.001f;
     fovSpeed = 2.0f;
+    camera_in_animation = false;
 }
 
 void Camera::update() {
@@ -68,11 +69,12 @@ void Camera::update() {
 
     // Task 5.4: right and up vectors of the camera coordinate system
     // use spherical coordinates
-    vec3 direction(
+    direction = vec3(
         cos(verticalAngle) * sin(horizontalAngle),
         sin(verticalAngle),
         cos(verticalAngle) * cos(horizontalAngle)
     );
+    
 
     // Right vector
     vec3 right(

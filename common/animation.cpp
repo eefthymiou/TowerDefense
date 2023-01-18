@@ -456,7 +456,7 @@ void Animation::draw(){
 
 void Animation::update(){
 
-    mat4 Translate = glm::translate(mat4(), vec3(0.0f,1.5f,0.0f));
+    mat4 Translate = glm::translate(mat4(), position);
     mat4 Rotate = glm::rotate(mat4(),radians(-90.0f),vec3(0.0f,0.0f,1.0f));
     // modelMatrix = Translate * Rotate * Scaling;
     // mat4 Scaling = glm::scale(mat4(), vec3(1.0f,1.0f,size));
