@@ -28,10 +28,20 @@ public:
     float size;
     glm::vec3 initial_target;
     glm::vec3 at_tower_pos;
+    glm::mat4 modelMatrix;
+
     void update(float t, float dt);
     bool handle_ammo(std::vector<package_ammo> *ammo_posisions);
     void sortest_path_for_ammo(std::vector<package_ammo> *ammo_positions);
+
+    static void load_mesh(std::string mesh_path);
+    static void loadTexture(const std::string& filename);
+    void bind();
+    void bindTexture();
+    void draw();
+
 private:
+    static void createContext();
     void erase_package(std::vector<package_ammo> *ammo_packages);
 };
 #endif

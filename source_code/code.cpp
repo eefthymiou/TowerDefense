@@ -58,6 +58,7 @@ GLFWwindow* window;
 Camera* camera;
 Aircraft* first_aircraft;
 Aircraft* second_aircraft;
+std::vector<Robot*> robots;
 Robot* first_robot;
 Moving_obj* planet1;
 GLuint shaderProgram;
@@ -282,9 +283,15 @@ void createContext() {
     position = vec3(0.0f,0.9f,6.0f);
     target = vec3(10.0f,0.9f,6.0f);
     vel = vec3(0.01f,0.0f,0.01f);
-    first_robot = new Robot("../Models/finale5.dae",position,vel,mass,target);
-    first_robot->animation_loadTexture("../Models/Texture_0.jpg");
-    first_robot->size = 0.01;
+
+    target = get_random_pos();
+    
+    Robot* robot = new Robot("../Models/finale5.dae",position,vel,mass,target);
+    robot->animation_loadTexture("../Models/Texture_0.jpg");
+    robot->size = 0.01;
+    robots.push_back(robot);
+    
+    
     
     // first_animation = new Animation("../Models/monkey_with_anim.dae");
     // first_animation->loadTexture("../Models/Texture_0.jpg");
@@ -294,7 +301,7 @@ void createContext() {
     view_mat_location = glGetUniformLocation(assimp_shader, "view");
     proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
     assimptextureSampler = glGetUniformLocation(assimp_shader, "textureSampler");
-    printf ("monkey bone count %i\n", first_robot->bone_count);
+   
     
     char name[64];
     for ( int i = 0; i < MAX_BONES; i++ ) {
@@ -448,26 +455,32 @@ void mainLoop() {
         glEnable( GL_DEPTH_TEST );
         glUseProgram(assimp_shader);
         glActiveTexture(GL_TEXTURE0);
-        first_robot->animation_bindTexture();
         glUniform1i(assimptextureSampler, 0);
-        first_robot->animation_bind();
 
-        if (distance(first_robot->x, first_robot->target)>0.01){
-            vec3 force0 = first_robot->seek();
-            first_robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                vector<float> f0(6, 0.0f);
-                f0[0] = force0.x;
-                f0[2] = force0.z;
-                return f0;
-            };
-            first_robot->update(t,dt);
+        vector<float> f0(6, 0.0f);
+        vec3 force0;
+        for (int i=0; i<robots.size(); i++){
+            Robot* robot = robots[i];
+            robot->animation_bindTexture();
+            robot->animation_bind();
+            if (distance(robot->x, robot->target)>0.01){
+                force0 = robot->seek();
+                robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                    f0[0] = force0.x;
+                    f0[2] = force0.z;
+                    return f0;
+                };
+                robot->update(t,dt);
+            }
+            robot->skeleton_animate(robot->root_node,robot->anim_time, identity_mat4(),robot->bone_offset_matrices, robot->bone_animation_mats );
+            glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &robot->modelMatrix[0][0]);
+            glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+            glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
+            glUniformMatrix4fv( bone_matrices_locations[0], robot->bone_count, GL_FALSE, robot->bone_animation_mats[0].m );
+            robot->animation_draw();
         }
-        first_robot->skeleton_animate(first_robot->root_node,first_robot->anim_time, identity_mat4(),first_robot->bone_offset_matrices, first_robot->bone_animation_mats );
-        glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &first_robot->modelMatrix[0][0]);
-        glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
-        glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
-        glUniformMatrix4fv( bone_matrices_locations[0], first_robot->bone_count, GL_FALSE, first_robot->bone_animation_mats[0].m );
-        first_robot->animation_draw();
+        
+        
 
         // use grid shader
         glUseProgram(gridshader);
@@ -594,10 +607,10 @@ void mainLoop() {
         }
         aircraftMVP = projectionMatrix * viewMatrix * second_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
-        // glActiveTexture(GL_TEXTURE2);
-        // first_aircraft->bindTexture();
-        // glUniform1i(textureSampler, 2);
-        first_aircraft->draw();
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(textureSampler, 2);
+        second_aircraft->bind();
+        second_aircraft->draw();
 
         // ammo
         glBindVertexArray(ammoVAO);
