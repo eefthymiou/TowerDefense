@@ -57,10 +57,10 @@ public:
         my_mat4* bone_offset_mats,
         my_mat4* bone_animation_mats);
 
-    void animation_bind();
-    void animation_draw();
-    void animation_loadTexture(const std::string& filename);
-    void animation_bindTexture();
+    void bind();
+    void draw();
+    void loadTexture(const std::string& filename);
+    void bindTexture();
 };
 
 #endif

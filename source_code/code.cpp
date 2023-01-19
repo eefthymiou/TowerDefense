@@ -53,13 +53,22 @@ void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mod
 #define W_HEIGHT 768
 #define TITLE "Tower Defense"
 
+struct robot_info {
+  glm::vec3 position;
+  int team;
+  bool available=true;
+  float maxspeed;
+};
+
 // Global variables
 GLFWwindow* window;
 Camera* camera;
 Aircraft* first_aircraft;
 Aircraft* second_aircraft;
 std::vector<Robot*> robots;
-Robot* first_robot;
+std::vector<robot_info> robots_info;
+
+
 Moving_obj* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
@@ -97,6 +106,7 @@ std::vector<vec3> ammoVertices, ammoNormals;
 std::vector<vec2> ammoUVs;
 
 
+
 // assimp model locations
 GLuint model_mat_location;
 GLuint view_mat_location;
@@ -116,13 +126,64 @@ void renderHelpingWindow(){
 
     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
     ImGui::SliderFloat("height", &height, 0 , 0.0);
-    ImGui::Text("Health tower 1: %d",health_tower1);
+    ImGui::Text("Health robot 1: %d",health_tower1);
     ImGui::Text("Health tower 2: %d",health_tower2);
+
+    ImGui::Text("robot %d: %f",robots[0]->team_tower,robots[0]->health);
+    ImGui::Text("robot %d: %f",robots[1]->team_tower,robots[1]->health);
     ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
     
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+
+void generate_robots_info(){
+    robot_info temp_robot_info;
+    std::vector<vec3> positions1;
+    std::vector<vec3> positions2;
+    float random_speed;
+
+    positions1.push_back(vec3(0.0f,0.9f,4.0f));
+    positions1.push_back(vec3(4.0f,0.9f,4.0f));
+    positions1.push_back(vec3(2.0f,0.9f,4.0f));
+    positions1.push_back(vec3(4.0f,0.9f,2.0f));
+    
+    for (int i=0; i<positions1.size(); i++){
+        random_speed = static_cast<float>(std::rand()) / RAND_MAX * 0.5 + 0.5;
+        temp_robot_info.position = positions1[i];
+        temp_robot_info.team = 1;
+        temp_robot_info.maxspeed = random_speed*0.2;
+        robots_info.push_back(temp_robot_info);
+    }
+
+    positions2.push_back(vec3(14.0f,0.9f,14.0f));
+    positions2.push_back(vec3(14.0f,0.9f,16.0f));
+    positions2.push_back(vec3(16.0f,0.9f,14.0f));
+    positions2.push_back(vec3(18.0f,0.9f,14.0f));
+    
+    for (int i=0; i<positions2.size(); i++){
+        random_speed = static_cast<float>(std::rand()) / RAND_MAX;
+        temp_robot_info.position = positions2[i];
+        temp_robot_info.team = 2;
+        temp_robot_info.maxspeed = random_speed*0.2;
+        robots_info.push_back(temp_robot_info);
+    }
+}
+
+robot_info get_random_robot_info(int team){
+    robot_info return_robot_info;
+    int randomNum;
+
+    while (true){
+        randomNum = std::rand() % robots_info.size()-1;
+        if (robots_info[randomNum].team == team && robots_info[randomNum].available == true){
+            robots_info[randomNum].available = false;
+            break;  
+        } 
+    }
+    return robots_info[randomNum];
 }
 
 void createContext() {
@@ -264,9 +325,6 @@ void createContext() {
     second_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
     second_aircraft->at_tower_pos = vec3(2.0f,0.0f,2.0f);
     second_aircraft->size =  0.08;
-    // second_aircraft->load_mesh("../OBJ_files/aircraft.obj");
-    // second_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
-
 
     // planet
     // position = vec3(4.0f, 2.0f, 14.0f);
@@ -280,18 +338,69 @@ void createContext() {
     // planet1->maxspeed = 10.0f;
 
     // amimation
-    position = vec3(0.0f,0.9f,6.0f);
-    target = vec3(10.0f,0.9f,6.0f);
-    vel = vec3(0.01f,0.0f,0.01f);
-
-    target = get_random_pos();
+    // generate positions for robots 
+    generate_robots_info();
+    vel = vec3(0.0f,0.0f,0.0f);
+    Robot* robot;
     
-    Robot* robot = new Robot("../Models/finale5.dae",position,vel,mass,target);
-    robot->animation_loadTexture("../Models/Texture_0.jpg");
-    robot->size = 0.01;
+    
+    robot_info c_r_info;
+    c_r_info = get_random_robot_info(1);
+    target = vec3(13.0f,0.9f,14.0f);;
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,1,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
+
+    c_r_info = get_random_robot_info(1);
+    target = vec3(13.0f,0.9f,14.0f);;
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,1,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
+
+    // c_r_info = get_random_robot_info(1);
+    // target = vec3(13.0f,0.9f,14.0f);;
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,1,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
+
+    // c_r_info = get_random_robot_info(1);
+    // target = vec3(13.0f,0.9f,14.0f);;
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,1,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
+
+
+    c_r_info = get_random_robot_info(2);
+    target = vec3(5.0f,0.9f,5.0f);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,2,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
     robots.push_back(robot);
     
-    
+    c_r_info = get_random_robot_info(2);
+    target = vec3(5.0f,0.9f,5.0f);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,2,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
+
+    // c_r_info = get_random_robot_info(2);
+    // target = vec3(5.0f,0.9f,5.0f);
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,2,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
+
+    // c_r_info = get_random_robot_info(2);
+    // target = vec3(5.0f,0.9f,5.0f);
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,2,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
     
     // first_animation = new Animation("../Models/monkey_with_anim.dae");
     // first_animation->loadTexture("../Models/Texture_0.jpg");
@@ -314,7 +423,7 @@ void createContext() {
     gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
 
     gMVPLocation = glGetUniformLocation(gridshader, "MVP");
-    translationsLocation = glGetUniformLocation(gridshader, "offsets");
+    translationsLocation = glGetUniformLocation(gridshader, "grid");
     gtextureSampler = glGetUniformLocation(gridshader, "textureSampler");
 
     //grid 
@@ -385,6 +494,11 @@ void free() {
     glfwTerminate();
 }
 
+void set_alive_random_robot(){
+    for (int i=0; i<robots.size(); i++){
+       if (robots[i]->health<=0.0f && (rand() % 100)==0)robots[i]->health = 1.0f; 
+    }
+}
 
 void mainLoop() {
 
@@ -419,8 +533,6 @@ void mainLoop() {
     vector<package_ammo> ammo_packages;
     package_ammo temp_package_ammo;
     vec3 position;
-    bool game_ends = false;
-    string winner = "";
 
     vec3 ammo_position;
     mat4 ammoModelMatrix;
@@ -457,29 +569,38 @@ void mainLoop() {
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(assimptextureSampler, 0);
 
+        // set_alive_random_robot();
+
         vector<float> f0(6, 0.0f);
         vec3 force0;
         for (int i=0; i<robots.size(); i++){
             Robot* robot = robots[i];
-            robot->animation_bindTexture();
-            robot->animation_bind();
-            if (distance(robot->x, robot->target)>0.01){
-                force0 = robot->seek();
-                robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                    f0[0] = force0.x;
-                    f0[2] = force0.z;
-                    return f0;
-                };
-                robot->update(t,dt);
+            if (robot->health>0.0f){
+                robot->findTarget(&robots);
+                if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
+                else robot->handleShooting(&health_tower1);
+
+                robot->bindTexture();
+                robot->bind();
+                if (distance(robot->x, robot->target)>0.01){
+                    force0 = robot->seek();
+                    robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                        f0[0] = force0.x;
+                        f0[2] = force0.z;
+                        return f0;
+                    };
+                    robot->update(t,dt);
+                }
+                
+                robot->skeleton_animate(robot->root_node,robot->anim_time, identity_mat4(),robot->bone_offset_matrices, robot->bone_animation_mats );
+                glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &robot->modelMatrix[0][0]);
+                glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
+                glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
+                glUniformMatrix4fv( bone_matrices_locations[0], robot->bone_count, GL_FALSE, robot->bone_animation_mats[0].m );
+                robot->draw();
             }
-            robot->skeleton_animate(robot->root_node,robot->anim_time, identity_mat4(),robot->bone_offset_matrices, robot->bone_animation_mats );
-            glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &robot->modelMatrix[0][0]);
-            glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
-            glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
-            glUniformMatrix4fv( bone_matrices_locations[0], robot->bone_count, GL_FALSE, robot->bone_animation_mats[0].m );
-            robot->animation_draw();
-        }
-        
+        }  
+
         
 
         // use grid shader
@@ -558,14 +679,8 @@ void mainLoop() {
         
         // first aircraft
          
-        if (first_aircraft->handle_ammo(&ammo_packages)){
-            // true -> health_tower -1 
-            health_tower2 -=1;
-            if (health_tower2 == 0){
-                game_ends = true;
-                winner = "tower 1";
-            }
-        }
+        first_aircraft->handle_ammo(&ammo_packages,&health_tower2);
+        
         if (distance(first_aircraft->x, first_aircraft->target)>0.01){
             vec3 force1 = first_aircraft->seek();
             first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
@@ -586,14 +701,7 @@ void mainLoop() {
         first_aircraft->draw();
 
         // second aircraft
-        if (second_aircraft->handle_ammo(&ammo_packages)){
-            // true -> health_tower -1 
-            health_tower1 -=1;
-            if (health_tower1 == 0){
-                game_ends = true;
-                winner = "tower 2";
-            }
-        }
+        second_aircraft->handle_ammo(&ammo_packages,&health_tower1);
         if (distance(second_aircraft->x, second_aircraft->target)>0.01){
             vec3 force2 = second_aircraft->seek();
             second_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
@@ -660,10 +768,15 @@ void mainLoop() {
         
         t +=dt;
 
-        if (game_ends) {
-            cout << "the winner is :" + winner << endl; 
+        if (health_tower1 == 0) {
+            cout << "the winner is : TOWER 2" << endl; 
             break;
         }
+        if (health_tower2 == 0) {
+            cout << "the winner is : TOWER 1" << endl; 
+            break;
+        }
+
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) == 0);
 }

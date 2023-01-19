@@ -63,7 +63,7 @@ void Aircraft::sortest_path_for_ammo(std::vector<package_ammo> *ammo_packages){
 vec3 get_random_pos(){
     int N = 10;
     float x = rand() % N + 4.0f;
-    float y = rand() % N + 0.5f;
+    float y = rand() % N + 2.0f;
     float z = rand() % N + 4.0f;
     return vec3(x,y,z);
 }
@@ -92,13 +92,15 @@ void Aircraft::erase_package(std::vector<package_ammo> *ammo_packages){
 
 
 // true->it fires in tower
-bool Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages){
+void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_tower_health){
+    // if this function returns true it means that enemy healt has to be decrease
+    
     float distance = length(x-target);
     // cout << ammo << endl;
     if (ammo>0 && distance<5.0f){
         // start shoot... decreases ammo
         ammo-=1;
-        return true;
+        (*enemy_tower_health) -= 1;
     }
     else if  (ammo==0 && distance<1.0f && find_ammo == true){
         // aircraft now has ammo... return to the tower
@@ -108,7 +110,6 @@ bool Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages){
         ammo = 500;
         find_ammo = false;
         arrives = true;
-        return false;
     }
 
     else if (ammo==0 && find_ammo==false){
@@ -116,10 +117,8 @@ bool Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages){
         cout << "out of ammo" << endl;
         sortest_path_for_ammo(ammo_packages);
         find_ammo = true;
-        arrives = false;
-        return false;
+        arrives = false; 
     }
-    return false;
 }
 
 void Aircraft::update(float t, float dt) {

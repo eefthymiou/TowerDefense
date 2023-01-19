@@ -31,7 +31,7 @@ public:
     glm::mat4 modelMatrix;
 
     void update(float t, float dt);
-    bool handle_ammo(std::vector<package_ammo> *ammo_posisions);
+    void handle_ammo(std::vector<package_ammo> *ammo_posisions,int *enemy_tower_health);
     void sortest_path_for_ammo(std::vector<package_ammo> *ammo_positions);
 
     static void load_mesh(std::string mesh_path);
@@ -39,6 +39,7 @@ public:
     void bind();
     void bindTexture();
     void draw();
+
 
 private:
     static void createContext();

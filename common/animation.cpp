@@ -438,19 +438,19 @@ Animation::~Animation(){
     glDeleteBuffers(1, &vao);
 }
 
-void Animation::animation_loadTexture(const std::string& filename){
+void Animation::loadTexture(const std::string& filename){
     if (filename.length() == 0) return;
     Texture = loadSOIL(filename.c_str());
 }
 
-void Animation::animation_bindTexture() {
+void Animation::bindTexture() {
     glBindTexture(GL_TEXTURE_2D, Texture);
 }
 
-void Animation::animation_bind(){
+void Animation::bind(){
     glBindVertexArray( vao );
 }
-void Animation::animation_draw(){
+void Animation::draw(){
     glDrawArrays(GL_TRIANGLES, 0, point_count );
 }
 
