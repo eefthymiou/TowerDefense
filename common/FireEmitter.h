@@ -6,9 +6,9 @@
 #define VVR_OGL_LABORATORY_FOUNTAINEMITTER_H
 #include "IntParticleEmitter.h"
 
-class FountainEmitter : public IntParticleEmitter {
+class FireEmitter : public IntParticleEmitter {
     public:
-        FountainEmitter(Drawable* _model, int number);
+        FireEmitter(Drawable* _model, int number);
         
 
         //data member for collision checking

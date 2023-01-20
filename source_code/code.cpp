@@ -24,6 +24,7 @@
 #include <common/animation.h>
 #include <common/moving_object.h>
 #include <common/robot.h>
+#include <common/FireEmitter.h>
 // #include "common/gl_utils.h"
 
 #include <assimp/scene.h>
@@ -69,7 +70,6 @@ Aircraft* second_aircraft;
 std::vector<Robot*> robots;
 std::vector<robot_info> robots_info;
 
-
 Moving_obj* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
@@ -106,7 +106,16 @@ std::vector<vec2> cubeUVs;
 std::vector<vec3> ammoVertices, ammoNormals;
 std::vector<vec2> ammoUVs;
 
-
+// particles 
+GLuint particleShaderProgram;
+GLuint projectionMatrixLocation, viewMatrixLocation, modelMatrixLocation, projectionAndViewMatrix;
+GLuint translationMatrixLocation, rotationMatrixLocation, scaleMatrixLocation;
+GLuint diffuceColorSampler, fireTexture;
+glm::vec3 slider_emitter_pos(2.0f, 0.1f, 2.0f);
+int particles_slider = 5000;
+bool use_sorting = false;
+bool use_rotations = true;
+float height_threshold = 4.0f;
 
 // assimp model locations
 GLuint model_mat_location;
@@ -188,35 +197,44 @@ void generate_robots_info(){
     }
 }
 
-robot_info get_random_robot_info(int team){
-    int randomNum;
-
-    while (true){
-        randomNum = std::rand() % robots_info.size();
-        if (robots_info[randomNum].team == team && robots_info[randomNum].available == true){
-            robots_info[randomNum].available = false;
-            cout << randomNum << endl;
-            break;  
-        } 
-    }
-    return robots_info[randomNum];
-}
-
 void createContext() {
     // Create and compile our GLSL program from the shaders
     shaderProgram = loadShaders("../shaders/texture.vertexshader", "../shaders/texture.fragmentshader");
+    particleShaderProgram = loadShaders("../shaders/ParticleShader.vertexshader","../shaders/ParticleShader.fragmentshader");
+    gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
+    assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
 
     // Draw wire frame triangles or fill: GL_LINE, or GL_FILL
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // Get a pointer location to model matrix in the vertex shader
+    // shaderProgram
     MVPLocation = glGetUniformLocation(shaderProgram, "MVP");
     textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
 
-    // loadOBJ("../OBJ_files/Tower.obj",
-    //     Vertices, 
-    //     UVs,
-    //     Normals);
+    // grid shader
+    gMVPLocation = glGetUniformLocation(gridshader, "MVP");
+    translationsLocation = glGetUniformLocation(gridshader, "grid");
+    gtextureSampler = glGetUniformLocation(gridshader, "textureSampler");
+
+    // assimp shader
+    model_mat_location = glGetUniformLocation(assimp_shader, "model");
+    view_mat_location = glGetUniformLocation(assimp_shader, "view");
+    proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
+    assimptextureSampler = glGetUniformLocation(assimp_shader, "textureSampler");
+    
+    // particle shader
+    projectionAndViewMatrix = glGetUniformLocation(particleShaderProgram, "PV");
+    diffuceColorSampler = glGetUniformLocation(particleShaderProgram, "texture0");
+
+    char name[64];
+    for ( int i = 0; i < MAX_BONES; i++ ) {
+        sprintf( name, "bone_matrices[%i]", i );
+        bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
+        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
+    }
+
+    // fire
+    fireTexture = loadSOIL("../Textures/fire.png");
 
     loadOBJ("../OBJ_files/Plasma.obj",
         Vertices, 
@@ -360,68 +378,48 @@ void createContext() {
     
     
     robot_info c_r_info;
-    c_r_info = get_random_robot_info(1);
+    c_r_info = robots_info[0];
     target = vec3(13.0f,0.9f,14.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    c_r_info = get_random_robot_info(1);
+    c_r_info = robots_info[1];
     target = vec3(13.0f,0.9f,14.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    c_r_info = get_random_robot_info(1);
+    c_r_info = robots_info[2];
     target = vec3(13.0f,0.9f,14.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    c_r_info = get_random_robot_info(2);
+    c_r_info = robots_info[3];
     target = vec3(5.0f,0.9f,5.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
     
-    c_r_info = get_random_robot_info(2);
+    c_r_info = robots_info[4];
     target = vec3(5.0f,0.9f,5.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    c_r_info = get_random_robot_info(2);
+    c_r_info = robots_info[5];
     target = vec3(5.0f,0.9f,5.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
-    model_mat_location = glGetUniformLocation(assimp_shader, "model");
-    view_mat_location = glGetUniformLocation(assimp_shader, "view");
-    proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
-    assimptextureSampler = glGetUniformLocation(assimp_shader, "textureSampler");
-   
-    
-    char name[64];
-    for ( int i = 0; i < MAX_BONES; i++ ) {
-        sprintf( name, "bone_matrices[%i]", i );
-        bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
-        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
-    }
-
-
-    gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
-
-    gMVPLocation = glGetUniformLocation(gridshader, "MVP");
-    translationsLocation = glGetUniformLocation(gridshader, "grid");
-    gtextureSampler = glGetUniformLocation(gridshader, "textureSampler");
 
     //grid 
     const GLfloat quadVertices[] = {
@@ -505,6 +503,9 @@ void check_game(){
 }
 
 void mainLoop() {
+    auto* quad = new Drawable("../OBJ_files/quad.obj");
+    FireEmitter f_emitter = FireEmitter(quad,  particles_slider);
+
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -531,7 +532,8 @@ void mainLoop() {
     mat4 Scaling,Rotate,Translate;
 
     float t = glfwGetTime();
-    float timmer = 0.0f;
+    float t_particles = glfwGetTime();
+
     int direction = 1;
 
     vector<package_ammo> ammo_packages;
@@ -548,7 +550,6 @@ void mainLoop() {
         ammo_packages.push_back(temp_package_ammo);
         cout<<ammo_packages.size()<<endl;
     }
-
     do {
         
         ImGui_ImplOpenGL3_NewFrame();
@@ -559,7 +560,6 @@ void mainLoop() {
         check_game();
 
         float dt = 0.1;
-        timmer += dt;
 
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -768,13 +768,38 @@ void mainLoop() {
         // glUniform1i(textureSampler, 3);
         // planet1->bind();
         // planet1->draw();
+
+        glUseProgram(particleShaderProgram);
+
+        f_emitter.changeParticleNumber(particles_slider);
+        f_emitter.emitter_pos = slider_emitter_pos;
+        f_emitter.use_rotations = use_rotations;
+        f_emitter.use_sorting = use_sorting;
+        f_emitter.height_threshold = height_threshold;
         
+
+        auto PV = projectionMatrix * viewMatrix;
+        glUniformMatrix4fv(projectionAndViewMatrix, 1, GL_FALSE, &PV[0][0]);
+
+        float currentTime = glfwGetTime();
+        float dt_particles = currentTime - t_particles;
+        
+        
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, fireTexture);
+        glUniform1i(diffuceColorSampler, 4);
+    
+        f_emitter.updateParticles(currentTime, dt_particles, camera->position);
+        f_emitter.renderParticles();
+
+    
 
         renderHelpingWindow();
         glfwSwapBuffers(window);
         glfwPollEvents();
         
         t +=dt;
+        t_particles = currentTime;
 
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) == 0);
