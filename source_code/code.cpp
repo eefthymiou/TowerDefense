@@ -115,10 +115,11 @@ GLuint proj_mat_location;
 int bone_matrices_locations[MAX_BONES];
 
 // gui variables
-bool game_paused = true;
 int health_tower1 = 20000;
 int health_tower2 = 20000;
 float height = 0.0f;
+bool game = true;
+bool game_ends = false;
 
 glm::vec4 background_color = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 
@@ -126,7 +127,6 @@ void renderHelpingWindow(){
     ImGui::Begin("Helper Window");                          // Create a window called "Hello, world!" and append into it.
 
     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-    ImGui::SliderFloat("height", &height, 0 , 0.0);
     ImGui::Text("Health tower 1: %d",health_tower1/200);
     ImGui::Text("Health tower 2: %d",health_tower2/200);
 
@@ -136,8 +136,14 @@ void renderHelpingWindow(){
         else health = robots[i]->health*100;
         ImGui::Text("robot %d: %.1f",robots[i]->team_tower,health);
     }
- 
-
+    if (!game_ends){
+        if (!game) ImGui::Text("Game Paused.");
+        else ImGui::Text("Press P to pause the game.");
+    }
+    else {
+        if (health_tower1<=0.0) ImGui::Text("TOWER 2 WINS");
+        else ImGui::Text("TOWER 1 WINS");
+    }
     ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
     
@@ -396,16 +402,6 @@ void createContext() {
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    // c_r_info = get_random_robot_info(2);
-    // target = vec3(5.0f,0.9f,5.0f);
-    // robot = new Robot("../Models/finale5.dae",c_r_info.position,vel,mass,target,2,c_r_info.maxspeed);
-    // robot->loadTexture("../Models/Texture_0.jpg");
-    // robot->health = 1.0f;
-    // robots.push_back(robot);
-    
-    // first_animation = new Animation("../Models/monkey_with_anim.dae");
-    // first_animation->loadTexture("../Models/Texture_0.jpg");
-
     assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
     model_mat_location = glGetUniformLocation(assimp_shader, "model");
     view_mat_location = glGetUniformLocation(assimp_shader, "view");
@@ -501,6 +497,13 @@ void set_alive_random_robot(){
     }
 }
 
+void check_game(){
+    if (health_tower1 <= 0 || health_tower2<=0) {
+        game_ends = true;
+        game = false; 
+    }
+}
+
 void mainLoop() {
 
     IMGUI_CHECKVERSION();
@@ -553,6 +556,7 @@ void mainLoop() {
         ImGui::NewFrame();
         glClearColor(background_color[0], background_color[1], background_color[2], background_color[3]);
 
+        check_game();
 
         float dt = 0.1;
         timmer += dt;
@@ -577,23 +581,23 @@ void mainLoop() {
         for (int i=0; i<robots.size(); i++){
             Robot* robot = robots[i];
             if (robot->health>0.0f){
-                robot->findTarget(&robots);
-                if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
-                else robot->handleShooting(&health_tower1);
 
+                if (game){
+                    robot->findTarget(&robots);
+                    if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
+                    else robot->handleShooting(&health_tower1);
+                    if (distance(robot->x, robot->target)>0.01){
+                        force0 = robot->seek();
+                        robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                            f0[0] = force0.x;
+                            f0[2] = force0.z;
+                            return f0;
+                        };
+                        robot->update(t,dt);
+                    }
+                }
                 robot->bindTexture();
                 robot->bind();
-
-                if (distance(robot->x, robot->target)>0.01){
-                    force0 = robot->seek();
-                    robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                        f0[0] = force0.x;
-                        f0[2] = force0.z;
-                        return f0;
-                    };
-                    robot->update(t,dt);
-                }
-
                 robot->skeleton_animate(robot->root_node,robot->anim_time, identity_mat4(),robot->bone_offset_matrices, robot->bone_animation_mats );
                 glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &robot->modelMatrix[0][0]);
                 glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
@@ -601,10 +605,8 @@ void mainLoop() {
                 glUniformMatrix4fv( bone_matrices_locations[0], robot->bone_count, GL_FALSE, robot->bone_animation_mats[0].m );
                 robot->draw();
             }
-            else robot->handleHealth(); 
+            else if (game) robot->handleHealth(); 
         }  
-
-        
 
         // use grid shader
         glUseProgram(gridshader);
@@ -682,18 +684,19 @@ void mainLoop() {
         
         // first aircraft
          
-        first_aircraft->handle_ammo(&ammo_packages,&health_tower2);
-        
-        if (distance(first_aircraft->x, first_aircraft->target)>0.01){
-            vec3 force1 = first_aircraft->seek();
-            first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                vector<float> f1(6, 0.0f);
-                f1[0] = force1.x;
-                f1[1] = force1.y;
-                f1[2] = force1.z;
-                return f1;
-            };
-            first_aircraft->update(t,dt);
+        if (game) {
+            first_aircraft->handle_ammo(&ammo_packages,&health_tower2);
+            if (distance(first_aircraft->x, first_aircraft->target)>0.01){
+                vec3 force1 = first_aircraft->seek();
+                first_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                    vector<float> f1(6, 0.0f);
+                    f1[0] = force1.x;
+                    f1[1] = force1.y;
+                    f1[2] = force1.z;
+                    return f1;
+                };
+                first_aircraft->update(t,dt);
+            }
         }
         mat4 aircraftMVP = projectionMatrix * viewMatrix * first_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
@@ -704,17 +707,19 @@ void mainLoop() {
         first_aircraft->draw();
 
         // second aircraft
-        second_aircraft->handle_ammo(&ammo_packages,&health_tower1);
-        if (distance(second_aircraft->x, second_aircraft->target)>0.01){
-            vec3 force2 = second_aircraft->seek();
-            second_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                vector<float> f2(6, 0.0f);
-                f2[0] = force2.x;
-                f2[1] = force2.y;
-                f2[2] = force2.z;
-                return f2;
-            };
-            second_aircraft->update(t,dt);
+        if (game){
+            second_aircraft->handle_ammo(&ammo_packages,&health_tower1);
+            if (distance(second_aircraft->x, second_aircraft->target)>0.01){
+                vec3 force2 = second_aircraft->seek();
+                second_aircraft->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                    vector<float> f2(6, 0.0f);
+                    f2[0] = force2.x;
+                    f2[1] = force2.y;
+                    f2[2] = force2.z;
+                    return f2;
+                };
+                second_aircraft->update(t,dt);
+            }
         }
         aircraftMVP = projectionMatrix * viewMatrix * second_aircraft->modelMatrix;
         glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &aircraftMVP[0][0]);
@@ -770,15 +775,6 @@ void mainLoop() {
         glfwPollEvents();
         
         t +=dt;
-
-        if (health_tower1 == 0) {
-            cout << "the winner is : TOWER 2" << endl; 
-            break;
-        }
-        if (health_tower2 == 0) {
-            cout << "the winner is : TOWER 1" << endl; 
-            break;
-        }
 
     } while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS &&
              glfwWindowShouldClose(window) == 0);
@@ -841,8 +837,8 @@ void initialize() {
 }
 
 void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_P && action == GLFW_PRESS) {
-        game_paused = !game_paused;
+    if (key == GLFW_KEY_P && action == GLFW_PRESS && !game_ends) {
+        game = !game;
     }
 }
 
