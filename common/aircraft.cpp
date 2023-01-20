@@ -109,7 +109,6 @@ void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_t
         target = initial_target;
         ammo = 500;
         find_ammo = false;
-        arrives = true;
     }
 
     else if (ammo==0 && find_ammo==false){
@@ -117,7 +116,6 @@ void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_t
         cout << "out of ammo" << endl;
         sortest_path_for_ammo(ammo_packages);
         find_ammo = true;
-        arrives = false; 
     }
 }
 

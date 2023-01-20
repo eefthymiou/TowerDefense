@@ -10,16 +10,21 @@ public:
    
     glm::mat4 modelMatrix;
     glm::vec3 enemy_tower_pos;
+    glm::vec3 initial_pos;
+    glm::vec3 initial_vel;
+    glm::vec3 direction;
     float anim_time;
     int team_tower;
     float health = 1.0f;
     bool alive;
+    float timmer=0.0f;
     Robot* enemy_robot;
-    bool has_enemy_robot = false;
+    bool has_enemy_robot=false;
 
     void update(float t, float dt);
     void findTarget(std::vector<Robot*> *robots);
     void handleShooting(int *enemy_tower_health);
+    void handleHealth();
 };
 
 #endif

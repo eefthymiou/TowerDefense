@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <math.h>
 
 // Include GLEW
 #include <GL/glew.h>
@@ -26,31 +27,60 @@ Robot::Robot(const char*  path,vec3 pos,vec3 vel,float mass,vec3 t,int tower,flo
     // team tower could be 1 or 2
     team_tower = tower;
     enemy_tower_pos = t;
+    initial_pos = pos;
+    initial_vel = vel;
 }
 
 void Robot::findTarget(std::vector<Robot*> *robots){
-    Robot* target_robot;
+    float dis;
+    float min_dis = 100.0f;
+    float thesi = 0;
+    has_enemy_robot = false;
+
     for (int i=0; i<(*robots).size(); i++){
         // cheack if robots are not in the same team
         if ((*robots)[i]->team_tower != team_tower && (*robots)[i]->health > 0.0f) {
-            target = (*robots)[i]->x;
-            enemy_robot = (*robots)[i];
-            has_enemy_robot = true;
-            return;
+            dis = length((*robots)[i]->x - x);
+            if (dis<=min_dis){
+                thesi = i;
+                has_enemy_robot = true;
+                min_dis = dis;
+            }
         }
     }
-    has_enemy_robot = false;
-    target = enemy_tower_pos;
+    if (has_enemy_robot){
+        target = (*robots)[thesi]->x;
+        enemy_robot = (*robots)[thesi];
+    }
+    else target = enemy_tower_pos;
 }
 
+
 void Robot::handleShooting(int *enemy_tower_health){
+    float dis = length(x-enemy_robot->x);
     if (has_enemy_robot){
-        enemy_robot->health -= 0.002;
+        direction = v;
+        direction.y = 0;
+        if (dis<4.0f) enemy_robot->health -= (0.01 * (1/dis));
     }
     else {
-        (*enemy_tower_health) -= 1;
+        if (team_tower==2) direction = -enemy_tower_pos;
+        else direction = enemy_tower_pos;
+        direction.y = 0;
+        (*enemy_tower_health) -= 1 * (1/length(x-enemy_tower_pos)<5.0f);
     }
 }
+
+void Robot::handleHealth(){
+    int r = std::rand() % 500;
+    if (r==0){
+        health = 1.0f;
+        x = initial_pos;
+        v = initial_vel;
+        timmer = 0.0f;
+    }
+}
+
 
 
 void Robot::update(float t, float dt){
@@ -59,12 +89,9 @@ void Robot::update(float t, float dt){
     if ( anim_time >= anim_duration ) { anim_time = anim_duration - anim_time; }
     anim_time += length(v)*150.0f;
     
-    vec3 v1 = v;
-    v1.y = 0;
-    
     float size = 0.01;
-    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), normalize(v1)));
-    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), normalize(v1));
+    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), normalize(direction)));
+    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), normalize(direction));
     mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
     mat4 rotation = rotate(glm::mat4(1.0f),3.14f,vec3(0.0f,1.0f,0.0f));
 

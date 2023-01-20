@@ -9,7 +9,6 @@ public:
     glm::vec3 target;
     glm::vec3 initial_pos;
     bool moving;
-    bool arrives;
 
     Moving_obj(glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t);
     glm::vec3 seek();
