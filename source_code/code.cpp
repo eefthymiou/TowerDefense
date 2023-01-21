@@ -69,7 +69,6 @@ Aircraft* first_aircraft;
 Aircraft* second_aircraft;
 std::vector<Robot*> robots;
 FireEmitter* f_emitter;
-// BulletEmitter* b_emitter;
 std::vector<BulletEmitter> bullet_emitters;
 std::vector<robot_info> robots_info;
 Moving_obj* planet1;
@@ -128,8 +127,7 @@ int bone_matrices_locations[MAX_BONES];
 
 // gui variables
 int health_tower1 = 20000;
-int health_tower2 = 20000;
-float height = 0.0f;
+int health_tower2 = 200;
 bool game = true;
 bool game_ends = false;
 
@@ -238,24 +236,20 @@ void createContext() {
     fireTexture = loadSOIL("../Textures/fire.png");
     auto* quad = new Drawable("../OBJ_files/quad.obj");
     f_emitter = new FireEmitter(quad,  particles_slider);
-    f_emitter->configureVAO();
+    (*f_emitter).configureVAO();
     
 
     bulletTexture = loadSOIL("../Textures/bullet/bullet_DefaultMaterial_BaseColor.png");
     auto* bullet = new Drawable("../OBJ_files/bullet.obj");
-    int num_of_bullets = 10;
+    int num_of_bullets = 1;
     BulletEmitter b_emitter = BulletEmitter(bullet, num_of_bullets);
 
-    for (int i=0; i<2; i++){
+    for (int i=0; i<16; i++){
         bullet_emitters.push_back(b_emitter);
     }
-
-    bullet_emitters[0].emitter_pos = vec3(0.0f,2.0f,0.0f);
-    bullet_emitters[0].bullet_target = vec3(14.0f,4.0f,14.0f);
     bullet_emitters[0].configureVAO();
 
-    bullet_emitters[1].emitter_pos = vec3(0.0f,2.0f,0.0f);
-    bullet_emitters[1].bullet_target = vec3(0.0f,4.0f,14.0f);
+    
 
     loadOBJ("../OBJ_files/Plasma.obj",
         Vertices, 
@@ -396,50 +390,48 @@ void createContext() {
     // generate positions for robots 
     generate_robots_info();
     Robot* robot;
-    
-    
+    vec3 tower1_pos = vec3(2.0f,0.5f,2.0f);
+    vec3 tower2_pos = vec3(16.0,0.5f,16.0f);
+
     robot_info c_r_info;
     c_r_info = robots_info[0];
-    target = vec3(13.0f,0.9f,14.0f);
+    target = vec3(15.0f,0.9f,15.0f);
+    
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    // c_r_info = robots_info[1];
-    // target = vec3(13.0f,0.9f,14.0f);
-    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
-    // robot->loadTexture("../Models/Texture_0.jpg");
-    // robot->health = 1.0f;
-    // robots.push_back(robot);
+    c_r_info = robots_info[1];
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
 
-    // c_r_info = robots_info[2];
-    // target = vec3(13.0f,0.9f,14.0f);
-    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
-    // robot->loadTexture("../Models/Texture_0.jpg");
-    // robot->health = 1.0f;
-    // robots.push_back(robot);
+    c_r_info = robots_info[2];
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
 
     c_r_info = robots_info[3];
-    target = vec3(5.0f,0.9f,5.0f);
+    target = vec3(3.0f,0.9f,3.0f);
     robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
     robot->health = 1.0f;
     robots.push_back(robot);
     
-    // c_r_info = robots_info[4];
-    // target = vec3(5.0f,0.9f,5.0f);
-    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
-    // robot->loadTexture("../Models/Texture_0.jpg");
-    // robot->health = 1.0f;
-    // robots.push_back(robot);
+    c_r_info = robots_info[4];
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
 
-    // c_r_info = robots_info[5];
-    // target = vec3(5.0f,0.9f,5.0f);
-    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
-    // robot->loadTexture("../Models/Texture_0.jpg");
-    // robot->health = 1.0f;
-    // robots.push_back(robot);
+    c_r_info = robots_info[5];
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    robot->loadTexture("../Models/Texture_0.jpg");
+    robot->health = 1.0f;
+    robots.push_back(robot);
 
 
     //grid 
@@ -521,7 +513,7 @@ void check_game(){
     if (health_tower1<=0){
         game_ends = true;
         game = false;
-        (*f_emitter).emitter_pos  = vec3(2.0f,0.1f,2.0f);
+        (*f_emitter).emitter_pos = vec3(2.0f,0.1f,2.0f);
     }
 }
 
@@ -596,10 +588,14 @@ void mainLoop() {
 
         vector<float> f0(6, 0.0f);
         vec3 force0;
+        vec3 katheto;
+        int j;
         for (int i=0; i<robots.size(); i++){
+            j=i+2;
             Robot* robot = robots[i];
+            robot->shoots=false;
             if (robot->health>0.0f){
-                if (game){
+                if (game){ 
                     robot->findTarget(&robots);
                     if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
                     else robot->handleShooting(&health_tower1);
@@ -623,6 +619,19 @@ void mainLoop() {
                 robot->draw();
             }
             else if (game) robot->handleHealth(); 
+            katheto = glm::cross(normalize(robot->direction),vec3(0.0f,1.0f,0.0f));
+            
+            bullet_emitters[2*j+1].emitter_pos = robot->x + katheto*0.3f;
+            bullet_emitters[2*j+1].bullet_target = robot->target;
+
+            bullet_emitters[2*j].emitter_pos = robot->x - katheto*0.3f;
+            bullet_emitters[2*j].bullet_target = robot->target;
+
+            // robot0 -> 4,5
+            // robot1 -> 6,7
+            // robot3 -> 8,9
+            // robot4 -> 10,11
+            // robot5 -> 12,13
         }  
 
         // use grid shader
@@ -828,12 +837,24 @@ void mainLoop() {
         glBindTexture(GL_TEXTURE_2D, bulletTexture);
         glUniform1i(diffuceColorSampler, 1);
         
-        bullet_emitters[0].updateParticles(currentTime, dt_particles, camera->position);
-        bullet_emitters[0].renderParticles();
 
-        bullet_emitters[1].updateParticles(currentTime, dt_particles, camera->position);
-        bullet_emitters[1].renderParticles();
+        
 
+        for (int i=0; i<robots.size(); i++){
+            j=i+2;
+            if (game){
+                bullet_emitters[2*j].updateParticles(currentTime, dt_particles, camera->position);
+                bullet_emitters[2*j+1].updateParticles(currentTime, dt_particles, camera->position);
+            }
+            if (robots[i]->shoots){              
+                bullet_emitters[2*j].renderParticles();
+                bullet_emitters[2*j+1].renderParticles();
+            }
+            else {
+                bullet_emitters[2*j].createNewParticle(0);
+                bullet_emitters[2*j+1].createNewParticle(0);
+            }  
+        }
 
         
         renderHelpingWindow();

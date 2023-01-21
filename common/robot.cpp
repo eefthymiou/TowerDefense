@@ -57,17 +57,25 @@ void Robot::findTarget(std::vector<Robot*> *robots){
 
 
 void Robot::handleShooting(int *enemy_tower_health){
-    float dis = length(x-enemy_robot->x);
+    float dis;
     if (has_enemy_robot){
+        dis = length(x-enemy_robot->x);
         direction = v;
         direction.y = 0;
-        if (dis<4.0f) enemy_robot->health -= (0.01 * (1/dis));
+        if (dis<10.0f) {
+            enemy_robot->health -= (0.01 * (1/dis));
+            shoots = true;
+        }
     }
     else {
+        dis = length(x-enemy_tower_pos);
         if (team_tower==2) direction = -enemy_tower_pos;
         else direction = enemy_tower_pos;
         direction.y = 0;
-        (*enemy_tower_health) -= 1 * (1/length(x-enemy_tower_pos)<5.0f);
+        if (dis<10.0f){
+            (*enemy_tower_health) -= 1 * (1/length(x-enemy_tower_pos)<5.0f);
+            shoots = true;
+        }
     }
 }
 

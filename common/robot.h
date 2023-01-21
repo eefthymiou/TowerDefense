@@ -20,6 +20,7 @@ public:
     float timmer=0.0f;
     Robot* enemy_robot;
     bool has_enemy_robot=false;
+    bool shoots;
 
     void update(float t, float dt);
     void findTarget(std::vector<Robot*> *robots);

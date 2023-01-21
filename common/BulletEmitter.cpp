@@ -24,7 +24,7 @@ void BulletEmitter::updateParticles(float time, float dt,  glm::vec3 camera_pos)
         prev_distance = particle.distance;
         particle.distance = length(particle.position-bullet_target);
 
-        if(prev_distance < particle.distance){
+        if(prev_distance < particle.distance || checkForCollision(particle)){
             createNewParticle(i);
         }
 
@@ -36,6 +36,11 @@ void BulletEmitter::updateParticles(float time, float dt,  glm::vec3 camera_pos)
         particle.life = 1.0f;
     }
     
+}
+
+bool BulletEmitter::checkForCollision(particleAttributes& particle)
+{
+   if  (particle.position.x > 18.0f || particle.position.x<0.0f || particle.position.z>18.0f || particle.position.z<0.0f) return true;
 }
 
 void BulletEmitter::createNewParticle(int index){
