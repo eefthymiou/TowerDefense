@@ -77,7 +77,6 @@ void Robot::handleHealth(){
         health = 1.0f;
         x = initial_pos;
         v = initial_vel;
-        timmer = 0.0f;
     }
 }
 

@@ -1,15 +1,17 @@
 #include "FireEmitter.h"
 #include <iostream>
 #include <algorithm>
+using namespace glm;
 
-FireEmitter::FireEmitter(Drawable *_model, int number) : IntParticleEmitter(_model, number) {}
+FireEmitter::FireEmitter(Drawable *_model, int number): IntParticleEmitter(_model, number) {
+}
 
 void FireEmitter::updateParticles(float time, float dt, glm::vec3 camera_pos) {
 
     //This is for the fountain to slowly increase the number of its particles to the max amount
     //instead of shooting all the particles at once
     if (active_particles < number_of_particles) {
-        int batch = 3;
+        int batch = 8;
         int limit = std::min(number_of_particles - active_particles, batch);
         for (int i = 0; i < limit; i++) {
             createNewParticle(active_particles);
@@ -24,14 +26,16 @@ void FireEmitter::updateParticles(float time, float dt, glm::vec3 camera_pos) {
         particleAttributes & particle = p_attributes[i];
     
 
-        if(particle.position.y < emitter_pos.y - 1.0f || particle.life == 0.0f || checkForCollision(particle)){
+        if(particle.position.y < emitter_pos.y - 1.0f || checkForCollision(particle)){
             createNewParticle(i);
         }
 
-        if (particle.position.y > height_threshold)
+        if (particle.position.y > height_threshold && RAND>0.95)
             createNewParticle(i);
 
-        particle.accel = glm::vec3(-particle.position.x, 0.0f, -particle.position.z); //gravity force
+        if (particle.position.y > 1.5*height_threshold) createNewParticle(i);
+
+        particle.accel = glm::vec3(emitter_pos.x-particle.position.x, 0.0f,emitter_pos.z-particle.position.z); //gravity force
 
         //particle.rot_angle += 90*dt; 
 
@@ -58,7 +62,7 @@ void FireEmitter::createNewParticle(int index){
     particleAttributes & particle = p_attributes[index];
 
     particle.position = emitter_pos + glm::vec3(1 - RAND*2, RAND, 1 - RAND*2);
-    particle.velocity = glm::vec3(- RAND *0.8,1,-RAND*0.8 );
+    particle.velocity = glm::vec3(+ RAND *1.5,5.0f,+RAND*1.5 );
 
     particle.mass = RAND * 0.3f;
     particle.rot_axis = glm::normalize(glm::vec3(1 - 2*RAND, 1 - 2*RAND, 1 - 2*RAND));

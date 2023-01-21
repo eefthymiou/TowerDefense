@@ -58,7 +58,6 @@ struct robot_info {
   glm::vec3 position;
   glm::vec3 vel;
   int team;
-  bool available=true;
   float maxspeed;
 };
 
@@ -68,8 +67,8 @@ Camera* camera;
 Aircraft* first_aircraft;
 Aircraft* second_aircraft;
 std::vector<Robot*> robots;
+FireEmitter* f_emitter;
 std::vector<robot_info> robots_info;
-
 Moving_obj* planet1;
 GLuint shaderProgram;
 GLuint assimp_shader;
@@ -111,11 +110,11 @@ GLuint particleShaderProgram;
 GLuint projectionMatrixLocation, viewMatrixLocation, modelMatrixLocation, projectionAndViewMatrix;
 GLuint translationMatrixLocation, rotationMatrixLocation, scaleMatrixLocation;
 GLuint diffuceColorSampler, fireTexture;
-glm::vec3 slider_emitter_pos(2.0f, 0.1f, 2.0f);
-int particles_slider = 5000;
+glm::vec3 slider_emitter_pos;
+int particles_slider = 2000;
 bool use_sorting = false;
 bool use_rotations = true;
-float height_threshold = 4.0f;
+float height_threshold = 5.5f;
 
 // assimp model locations
 GLuint model_mat_location;
@@ -125,7 +124,7 @@ int bone_matrices_locations[MAX_BONES];
 
 // gui variables
 int health_tower1 = 20000;
-int health_tower2 = 20000;
+int health_tower2 = 10;
 float height = 0.0f;
 bool game = true;
 bool game_ends = false;
@@ -178,7 +177,6 @@ void generate_robots_info(){
         temp_robot_info.vel = vec3(0.0f,0.0f,0.0f);
         temp_robot_info.team = 1;
         temp_robot_info.maxspeed = random_speed*0.2;
-        temp_robot_info.available = true;
         robots_info.push_back(temp_robot_info);
     }
 
@@ -191,7 +189,6 @@ void generate_robots_info(){
         temp_robot_info.position = positions2[i];
         temp_robot_info.vel = vec3(0.0f,0.0f,0.0f);
         temp_robot_info.team = 2;
-        temp_robot_info.available = true;
         temp_robot_info.maxspeed = random_speed*0.2;
         robots_info.push_back(temp_robot_info);
     }
@@ -235,6 +232,8 @@ void createContext() {
 
     // fire
     fireTexture = loadSOIL("../Textures/fire.png");
+    auto* quad = new Drawable("../OBJ_files/quad.obj");
+    f_emitter = new FireEmitter(quad,  particles_slider);
 
     loadOBJ("../OBJ_files/Plasma.obj",
         Vertices, 
@@ -385,19 +384,19 @@ void createContext() {
     robot->health = 1.0f;
     robots.push_back(robot);
 
-    c_r_info = robots_info[1];
-    target = vec3(13.0f,0.9f,14.0f);
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
-    robots.push_back(robot);
+    // c_r_info = robots_info[1];
+    // target = vec3(13.0f,0.9f,14.0f);
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
 
-    c_r_info = robots_info[2];
-    target = vec3(13.0f,0.9f,14.0f);
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
-    robots.push_back(robot);
+    // c_r_info = robots_info[2];
+    // target = vec3(13.0f,0.9f,14.0f);
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
 
     c_r_info = robots_info[3];
     target = vec3(5.0f,0.9f,5.0f);
@@ -406,19 +405,19 @@ void createContext() {
     robot->health = 1.0f;
     robots.push_back(robot);
     
-    c_r_info = robots_info[4];
-    target = vec3(5.0f,0.9f,5.0f);
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
-    robots.push_back(robot);
+    // c_r_info = robots_info[4];
+    // target = vec3(5.0f,0.9f,5.0f);
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
 
-    c_r_info = robots_info[5];
-    target = vec3(5.0f,0.9f,5.0f);
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
-    robots.push_back(robot);
+    // c_r_info = robots_info[5];
+    // target = vec3(5.0f,0.9f,5.0f);
+    // robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    // robot->loadTexture("../Models/Texture_0.jpg");
+    // robot->health = 1.0f;
+    // robots.push_back(robot);
 
 
     //grid 
@@ -486,27 +485,25 @@ void free() {
     glDeleteProgram(shaderProgram);
     glDeleteProgram(gridshader);
     glDeleteProgram(assimp_shader);
+    glDeleteProgram(particleShaderProgram);
     glfwTerminate();
 }
 
-void set_alive_random_robot(){
-    for (int i=0; i<robots.size(); i++){
-       if (robots[i]->health<=0.0f && (rand() % 100)==0)robots[i]->health = 1.0f; 
-    }
-}
 
 void check_game(){
-    if (health_tower1 <= 0 || health_tower2<=0) {
+    if (health_tower2<=0) {
         game_ends = true;
         game = false; 
+        (*f_emitter).emitter_pos = vec3(16.0f,0.1f,16.0f);
+    }
+    if (health_tower1<=0){
+        game_ends = true;
+        game = false;
+        (*f_emitter).emitter_pos  = vec3(2.0f,0.1f,2.0f);
     }
 }
 
 void mainLoop() {
-    auto* quad = new Drawable("../OBJ_files/quad.obj");
-    FireEmitter f_emitter = FireEmitter(quad,  particles_slider);
-
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -527,18 +524,18 @@ void mainLoop() {
             // std::cout << index << glm::to_string(translation) << std::endl;
             translations[index++] = translation;
         }
-    }    
+    } 
+
     mat4 projectionMatrix,viewMatrix;
     mat4 Scaling,Rotate,Translate;
 
     float t = glfwGetTime();
     float t_particles = glfwGetTime();
 
-    int direction = 1;
-
     vector<package_ammo> ammo_packages;
     package_ammo temp_package_ammo;
     vec3 position;
+    int direction = 1;
 
     vec3 ammo_position;
     mat4 ammoModelMatrix;
@@ -559,29 +556,26 @@ void mainLoop() {
 
         check_game();
 
+        // float dt = glfwGetTime()-t;
         float dt = 0.1;
 
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
         
-        
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable( GL_DEPTH_TEST );
+
         glUseProgram(assimp_shader);
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(assimptextureSampler, 0);
-
-        // set_alive_random_robot();
 
         vector<float> f0(6, 0.0f);
         vec3 force0;
         for (int i=0; i<robots.size(); i++){
             Robot* robot = robots[i];
             if (robot->health>0.0f){
-
                 if (game){
                     robot->findTarget(&robots);
                     if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
@@ -683,7 +677,6 @@ void mainLoop() {
 
         
         // first aircraft
-         
         if (game) {
             first_aircraft->handle_ammo(&ammo_packages,&health_tower2);
             if (distance(first_aircraft->x, first_aircraft->target)>0.01){
@@ -770,12 +763,10 @@ void mainLoop() {
         // planet1->draw();
 
         glUseProgram(particleShaderProgram);
-
-        f_emitter.changeParticleNumber(particles_slider);
-        f_emitter.emitter_pos = slider_emitter_pos;
-        f_emitter.use_rotations = use_rotations;
-        f_emitter.use_sorting = use_sorting;
-        f_emitter.height_threshold = height_threshold;
+        (*f_emitter).changeParticleNumber(particles_slider);
+        (*f_emitter).use_rotations = use_rotations;
+        (*f_emitter).use_sorting = use_sorting;
+        (*f_emitter).height_threshold = height_threshold;
         
 
         auto PV = projectionMatrix * viewMatrix;
@@ -789,8 +780,8 @@ void mainLoop() {
         glBindTexture(GL_TEXTURE_2D, fireTexture);
         glUniform1i(diffuceColorSampler, 4);
     
-        f_emitter.updateParticles(currentTime, dt_particles, camera->position);
-        f_emitter.renderParticles();
+        (*f_emitter).updateParticles(currentTime, dt_particles, camera->position);
+        (*f_emitter).renderParticles();
 
     
 
