@@ -154,6 +154,8 @@ add_executable(source_code
   common/FireEmitter.h
   common/robot.cpp
   common/robot.h
+  common/BulletEmitter.cpp
+  common/BulletEmitter.h
   
   
 

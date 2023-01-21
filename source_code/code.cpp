@@ -25,6 +25,7 @@
 #include <common/moving_object.h>
 #include <common/robot.h>
 #include <common/FireEmitter.h>
+#include <common/BulletEmitter.h>
 // #include "common/gl_utils.h"
 
 #include <assimp/scene.h>
@@ -68,6 +69,8 @@ Aircraft* first_aircraft;
 Aircraft* second_aircraft;
 std::vector<Robot*> robots;
 FireEmitter* f_emitter;
+// BulletEmitter* b_emitter;
+std::vector<BulletEmitter> bullet_emitters;
 std::vector<robot_info> robots_info;
 Moving_obj* planet1;
 GLuint shaderProgram;
@@ -82,6 +85,7 @@ GLuint assimptextureSampler;
 GLuint gtextureSampler;
 GLuint texture,ninjatexture;
 GLuint quadtexture;
+GLuint bulletTexture;
 GLuint movingTexture;
 GLuint movingTextureSampler;
 GLuint displacementTexture;
@@ -114,7 +118,7 @@ glm::vec3 slider_emitter_pos;
 int particles_slider = 2000;
 bool use_sorting = false;
 bool use_rotations = true;
-float height_threshold = 5.5f;
+float height_threshold = 5.0f;
 
 // assimp model locations
 GLuint model_mat_location;
@@ -124,7 +128,7 @@ int bone_matrices_locations[MAX_BONES];
 
 // gui variables
 int health_tower1 = 20000;
-int health_tower2 = 10;
+int health_tower2 = 20000;
 float height = 0.0f;
 bool game = true;
 bool game_ends = false;
@@ -234,6 +238,24 @@ void createContext() {
     fireTexture = loadSOIL("../Textures/fire.png");
     auto* quad = new Drawable("../OBJ_files/quad.obj");
     f_emitter = new FireEmitter(quad,  particles_slider);
+    f_emitter->configureVAO();
+    
+
+    bulletTexture = loadSOIL("../Textures/bullet/bullet_DefaultMaterial_BaseColor.png");
+    auto* bullet = new Drawable("../OBJ_files/bullet.obj");
+    int num_of_bullets = 10;
+    BulletEmitter b_emitter = BulletEmitter(bullet, num_of_bullets);
+
+    for (int i=0; i<2; i++){
+        bullet_emitters.push_back(b_emitter);
+    }
+
+    bullet_emitters[0].emitter_pos = vec3(0.0f,2.0f,0.0f);
+    bullet_emitters[0].bullet_target = vec3(14.0f,4.0f,14.0f);
+    bullet_emitters[0].configureVAO();
+
+    bullet_emitters[1].emitter_pos = vec3(0.0f,2.0f,0.0f);
+    bullet_emitters[1].bullet_target = vec3(0.0f,4.0f,14.0f);
 
     loadOBJ("../OBJ_files/Plasma.obj",
         Vertices, 
@@ -540,6 +562,7 @@ void mainLoop() {
     vec3 ammo_position;
     mat4 ammoModelMatrix;
     mat4 ammoMVP;
+    mat4 bulletMVP;
 
     for (int i=0; i<5; i++) { 
         temp_package_ammo.position = get_random_pos();
@@ -738,6 +761,21 @@ void mainLoop() {
             glDrawArrays(GL_TRIANGLES, 0, ammoVertices.size());
         }
 
+        // // bullet
+        // bullet->bind();
+        // glActiveTexture(GL_TEXTURE4);
+        // glBindTexture(GL_TEXTURE_2D, bulletTexture);
+        // glUniform1i(textureSampler, 4); 
+        // size = 4.0f;
+        // Translate = glm::translate(mat4(), vec3(0.0f,2.0f,0.0f));
+        // Scaling = glm::scale(mat4(), vec3(size,size,size));
+        // mat4 bulletModelMatrix = Translate * Scaling;
+        // bulletMVP = projectionMatrix * viewMatrix * bulletModelMatrix;
+        // glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &bulletMVP[0][0]);
+        // bullet->draw();
+
+
+
         // float distance = length(planet1->x-planet1->target);
         // if (distance<2.0f) {
         //     vec3 prev_target = planet1->target;
@@ -763,28 +801,41 @@ void mainLoop() {
         // planet1->draw();
 
         glUseProgram(particleShaderProgram);
-        (*f_emitter).changeParticleNumber(particles_slider);
-        (*f_emitter).use_rotations = use_rotations;
-        (*f_emitter).use_sorting = use_sorting;
-        (*f_emitter).height_threshold = height_threshold;
-        
+        float currentTime = glfwGetTime();
+        float dt_particles = currentTime - t_particles;
 
         auto PV = projectionMatrix * viewMatrix;
         glUniformMatrix4fv(projectionAndViewMatrix, 1, GL_FALSE, &PV[0][0]);
 
-        float currentTime = glfwGetTime();
-        float dt_particles = currentTime - t_particles;
-        
-        
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, fireTexture);
-        glUniform1i(diffuceColorSampler, 4);
-    
-        (*f_emitter).updateParticles(currentTime, dt_particles, camera->position);
-        (*f_emitter).renderParticles();
+        if (game_ends){
+            (*f_emitter).changeParticleNumber(particles_slider);
+            (*f_emitter).use_rotations = use_rotations;
+            (*f_emitter).use_sorting = use_sorting;
+            (*f_emitter).height_threshold = height_threshold;
+            
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, fireTexture);
+            glUniform1i(diffuceColorSampler, 0);
 
-    
+            (*f_emitter).updateParticles(currentTime, dt_particles, camera->position);
+            (*f_emitter).renderParticles();
+        }
+        // bullet 
+        
+        bullet_emitters[0].use_rotations = true;
+        bullet_emitters[0].use_sorting = use_sorting;
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, bulletTexture);
+        glUniform1i(diffuceColorSampler, 1);
+        
+        bullet_emitters[0].updateParticles(currentTime, dt_particles, camera->position);
+        bullet_emitters[0].renderParticles();
 
+        bullet_emitters[1].updateParticles(currentTime, dt_particles, camera->position);
+        bullet_emitters[1].renderParticles();
+
+
+        
         renderHelpingWindow();
         glfwSwapBuffers(window);
         glfwPollEvents();

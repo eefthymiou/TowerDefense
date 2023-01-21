@@ -18,6 +18,7 @@ struct particleAttributes{
     float rot_angle = 0.0f; //degrees
     glm::vec3 accel = glm::vec3(0,0,0);
     glm::vec3 velocity = glm::vec3(0, 0, 0);
+    float distance;
     float life = 0.0f;
     float mass = 0.0f;
 
@@ -33,7 +34,6 @@ struct particleAttributes{
 class IntParticleEmitter
 {
 public:
-    GLuint emitterVAO;
     int number_of_particles;
 
     std::vector<particleAttributes> p_attributes;
@@ -53,6 +53,7 @@ public:
     
     glm::vec4 calculateBillboardRotationMatrix(glm::vec3 particle_pos, glm::vec3 camera_pos);
 
+    static void configureVAO();
 
 private:
 
@@ -61,13 +62,8 @@ private:
     std::vector<float> scales;
     std::vector<float> lifes;
 
-    Drawable* model;
-    void configureVAO();
+    
     void bindAndUpdateBuffers();
-    GLuint transformations_buffer;
-    GLuint rotations_buffer;
-    GLuint scales_buffer;
-    GLuint lifes_buffer;
-
+    
 };
 

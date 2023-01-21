@@ -2,8 +2,8 @@
 // Created by stagakis on 9/12/20.
 //
 
-#ifndef VVR_OGL_LABORATORY_FOUNTAINEMITTER_H
-#define VVR_OGL_LABORATORY_FOUNTAINEMITTER_H
+#ifndef VVR_OGL_LABORATORY_FIREEMITTER_H
+#define VVR_OGL_LABORATORY_FIREEMITTER_H
 #include "IntParticleEmitter.h"
 
 class FireEmitter : public IntParticleEmitter {

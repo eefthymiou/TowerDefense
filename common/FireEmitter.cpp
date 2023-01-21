@@ -30,7 +30,7 @@ void FireEmitter::updateParticles(float time, float dt, glm::vec3 camera_pos) {
             createNewParticle(i);
         }
 
-        if (particle.position.y > height_threshold && RAND>0.95)
+        if (particle.position.y + 1.0 > height_threshold && RAND>0.95)
             createNewParticle(i);
 
         if (particle.position.y > 1.5*height_threshold) createNewParticle(i);

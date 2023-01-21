@@ -8,6 +8,12 @@
 #endif // USE_PARALLEL_TRANSFORM
 
 
+static GLuint emitterVAO;
+static Drawable* model;
+static GLuint transformations_buffer;
+static GLuint rotations_buffer;
+static GLuint scales_buffer;
+static GLuint lifes_buffer;
 
 IntParticleEmitter::IntParticleEmitter(Drawable* _model, int number) {
     model = _model;
@@ -18,8 +24,6 @@ IntParticleEmitter::IntParticleEmitter(Drawable* _model, int number) {
     rotations.resize(number_of_particles, glm::mat4(1.0f));
     scales.resize(number_of_particles, 1.0f);
     lifes.resize(number_of_particles, 0.0f);
-
-    configureVAO();
 }
 
 void IntParticleEmitter::renderParticles(int time) {
