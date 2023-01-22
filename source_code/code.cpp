@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+
 // Include GLEW
 #include <GL/glew.h>
 
@@ -69,6 +70,7 @@ Aircraft* first_aircraft;
 Aircraft* second_aircraft;
 std::vector<Robot*> robots;
 FireEmitter* f_emitter;
+BulletEmitter* b_emitter;
 std::vector<BulletEmitter> bullet_emitters;
 std::vector<robot_info> robots_info;
 Moving_obj* planet1;
@@ -114,10 +116,7 @@ GLuint projectionMatrixLocation, viewMatrixLocation, modelMatrixLocation, projec
 GLuint translationMatrixLocation, rotationMatrixLocation, scaleMatrixLocation;
 GLuint diffuceColorSampler, fireTexture;
 glm::vec3 slider_emitter_pos;
-int particles_slider = 2000;
-bool use_sorting = false;
-bool use_rotations = true;
-float height_threshold = 5.0f;
+
 
 // assimp model locations
 GLuint model_mat_location;
@@ -127,7 +126,7 @@ int bone_matrices_locations[MAX_BONES];
 
 // gui variables
 int health_tower1 = 20000;
-int health_tower2 = 200;
+int health_tower2 = 20000;
 bool game = true;
 bool game_ends = false;
 
@@ -140,11 +139,14 @@ void renderHelpingWindow(){
     ImGui::Text("Health tower 1: %d",health_tower1/200);
     ImGui::Text("Health tower 2: %d",health_tower2/200);
 
-    float health;
+    string health;
+    int asterakia;
     for (int i=0; i<robots.size(); i++){
-        if (robots[i]->health<0.0) health = 0.0f;
-        else health = robots[i]->health*100;
-        ImGui::Text("robot %d: %.1f",robots[i]->team_tower,health);
+        health = "";
+        asterakia = robots[i]->health * 10 + 0.5;
+        for (int j=0; j<asterakia; j++) health += "*";
+        char* c = const_cast<char*>(health.c_str());
+        ImGui::Text("robot %d: %s",robots[i]->team_tower,c);
     }
     if (!game_ends){
         if (!game) ImGui::Text("Game Paused.");
@@ -235,19 +237,18 @@ void createContext() {
     // fire
     fireTexture = loadSOIL("../Textures/fire.png");
     auto* quad = new Drawable("../OBJ_files/quad.obj");
-    f_emitter = new FireEmitter(quad,  particles_slider);
-    (*f_emitter).configureVAO();
-    
+    f_emitter = new FireEmitter(quad,  2000);
+    (*f_emitter).height_threshold = 5.0f;
 
     bulletTexture = loadSOIL("../Textures/bullet/bullet_DefaultMaterial_BaseColor.png");
     auto* bullet = new Drawable("../OBJ_files/bullet.obj");
     int num_of_bullets = 1;
-    BulletEmitter b_emitter = BulletEmitter(bullet, num_of_bullets);
 
     for (int i=0; i<16; i++){
-        bullet_emitters.push_back(b_emitter);
+        b_emitter = new BulletEmitter(bullet, num_of_bullets);
+        bullet_emitters.push_back(*b_emitter);
     }
-    bullet_emitters[0].configureVAO();
+    
 
     
 
@@ -359,7 +360,7 @@ void createContext() {
     float mass = 2.0f;
     int ammo = 500;
     int id = 0;
-    first_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
+    first_aircraft = new Aircraft(position,vel,mass,target,ammo,id,vec3(16.0f,0.0f,16.0f));
     first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
     first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
     first_aircraft->at_tower_pos =  vec3(16.0f,0.0f,16.0f);
@@ -371,7 +372,7 @@ void createContext() {
     mass = 2.0f;
     ammo = 500;
     id = 1;
-    second_aircraft = new Aircraft(position,vel,mass,target,ammo,id);
+    second_aircraft = new Aircraft(position,vel,mass,target,ammo,id,vec3(-2.0f,0.0f,-2.0f));
     second_aircraft->at_tower_pos = vec3(2.0f,0.0f,2.0f);
     second_aircraft->size =  0.08;
 
@@ -549,7 +550,6 @@ void mainLoop() {
     vector<package_ammo> ammo_packages;
     package_ammo temp_package_ammo;
     vec3 position;
-    int direction = 1;
 
     vec3 ammo_position;
     mat4 ammoModelMatrix;
@@ -593,7 +593,7 @@ void mainLoop() {
         for (int i=0; i<robots.size(); i++){
             j=i+2;
             Robot* robot = robots[i];
-            robot->shoots=false;
+            
             if (robot->health>0.0f){
                 if (game){ 
                     robot->findTarget(&robots);
@@ -619,6 +619,7 @@ void mainLoop() {
                 robot->draw();
             }
             else if (game) robot->handleHealth(); 
+        
             katheto = glm::cross(normalize(robot->direction),vec3(0.0f,1.0f,0.0f));
             
             bullet_emitters[2*j+1].emitter_pos = robot->x + katheto*0.3f;
@@ -730,6 +731,11 @@ void mainLoop() {
         glUniform1i(textureSampler, 2);
         first_aircraft->bind();
         first_aircraft->draw();
+        katheto = glm::cross(normalize(first_aircraft->direction),vec3(0.0f,1.0f,0.0f));
+        bullet_emitters[0].emitter_pos = first_aircraft->x + katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[0].bullet_target = vec3(16.0f,2.0f,16.0f);
+        bullet_emitters[1].emitter_pos = first_aircraft->x - katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[1].bullet_target = vec3(16.0f,2.0f,16.0f);
 
         // second aircraft
         if (game){
@@ -752,6 +758,11 @@ void mainLoop() {
         glUniform1i(textureSampler, 2);
         second_aircraft->bind();
         second_aircraft->draw();
+        katheto = glm::cross(normalize(second_aircraft->direction),vec3(0.0f,1.0f,0.0f));
+        bullet_emitters[2].emitter_pos = second_aircraft->x + katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[2].bullet_target = vec3(2.0f,2.0f,2.0f);
+        bullet_emitters[3].emitter_pos = second_aircraft->x - katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[3].bullet_target = vec3(2.0f,2.0f,2.0f);
 
         // ammo
         glBindVertexArray(ammoVAO);
@@ -817,10 +828,8 @@ void mainLoop() {
         glUniformMatrix4fv(projectionAndViewMatrix, 1, GL_FALSE, &PV[0][0]);
 
         if (game_ends){
-            (*f_emitter).changeParticleNumber(particles_slider);
-            (*f_emitter).use_rotations = use_rotations;
-            (*f_emitter).use_sorting = use_sorting;
-            (*f_emitter).height_threshold = height_threshold;
+            (*f_emitter).use_rotations = true;
+            (*f_emitter).use_sorting = false;
             
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, fireTexture);
@@ -832,13 +841,10 @@ void mainLoop() {
         // bullet 
         
         bullet_emitters[0].use_rotations = true;
-        bullet_emitters[0].use_sorting = use_sorting;
+        bullet_emitters[0].use_sorting = false;
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, bulletTexture);
         glUniform1i(diffuceColorSampler, 1);
-        
-
-        
 
         for (int i=0; i<robots.size(); i++){
             j=i+2;
@@ -855,6 +861,31 @@ void mainLoop() {
                 bullet_emitters[2*j+1].createNewParticle(0);
             }  
         }
+        
+        if (game){
+            bullet_emitters[0].updateParticles(currentTime, dt_particles, camera->position);
+            bullet_emitters[1].updateParticles(currentTime, dt_particles, camera->position);
+            bullet_emitters[2].updateParticles(currentTime, dt_particles, camera->position);
+            bullet_emitters[3].updateParticles(currentTime, dt_particles, camera->position);
+        }
+        if (first_aircraft->shoots){              
+            bullet_emitters[0].renderParticles();
+            bullet_emitters[1].renderParticles();
+        }
+        else {
+            bullet_emitters[0].createNewParticle(0);
+            bullet_emitters[1].createNewParticle(0);
+        } 
+        if (second_aircraft->shoots){              
+            bullet_emitters[2].renderParticles();
+            bullet_emitters[3].renderParticles();
+        }
+        else {
+            bullet_emitters[2].createNewParticle(0);
+            bullet_emitters[3].createNewParticle(0);
+        } 
+    
+        
 
         
         renderHelpingWindow();

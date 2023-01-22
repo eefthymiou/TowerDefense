@@ -20,7 +20,7 @@ glm::vec3 get_random_pos();
 
 class Aircraft :  public Moving_obj {
 public:
-    Aircraft(glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t,int a,int id);
+    Aircraft(glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t,int a,int id,glm::vec3 tower_pos);
 public:
     int ammo;
     int id;
@@ -29,6 +29,9 @@ public:
     glm::vec3 initial_target;
     glm::vec3 at_tower_pos;
     glm::mat4 modelMatrix;
+    glm::vec3 direction;
+    glm::vec3 real_tower_pos;
+    bool shoots;
 
     void update(float t, float dt);
     void handle_ammo(std::vector<package_ammo> *ammo_posisions,int *enemy_tower_health);

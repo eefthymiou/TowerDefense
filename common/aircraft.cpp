@@ -30,12 +30,13 @@ static std::vector<glm::vec3> Vertices, Normals;
 static std::vector<glm::vec2> UVs;
 
 
-Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a,int i) : 
+Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a,int i,vec3 tower_pos) : 
     Moving_obj(pos,vel,mass,t) {
         ammo = a;
         id = i;
         initial_target = t;
         find_ammo = false;
+        real_tower_pos = tower_pos;
 }
 
 
@@ -94,23 +95,30 @@ void Aircraft::erase_package(std::vector<package_ammo> *ammo_packages){
 // true->it fires in tower
 void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_tower_health){
     // if this function returns true it means that enemy healt has to be decrease
-    
+    shoots = false;
     float distance = length(x-target);
     // cout << ammo << endl;
-    if (ammo>0 && distance<5.0f){
-        // start shoot... decreases ammo
-        ammo-=1;
-        (*enemy_tower_health) -= 1;
+    if (ammo>0){
+        if (distance < 5.0f){
+            // start shoot... decreases ammo
+            ammo-=1;
+            (*enemy_tower_health) -= 1;
+            shoots = true;
+        }
+        direction = real_tower_pos;
     }
-    else if  (ammo==0 && distance<1.0f && find_ammo == true){
-        // aircraft now has ammo... return to the tower
-        erase_package(ammo_packages);
-        cout << "ammo full. RETURN TO TOWER" << endl;
-        target = initial_target;
-        ammo = 500;
-        find_ammo = false;
+    else if  (ammo==0 && find_ammo == true){
+        if (distance<1.0f){
+            // aircraft now has ammo... return to the tower
+            erase_package(ammo_packages);
+            cout << "ammo full. RETURN TO TOWER" << endl;
+            target = initial_target;
+            ammo = 500;
+            find_ammo = false;
+        }
+        direction = v;
+        direction.y = 0.0f;
     }
-
     else if (ammo==0 && find_ammo==false){
         // target now is to find ammo
         cout << "out of ammo" << endl;
@@ -123,12 +131,9 @@ void Aircraft::update(float t, float dt) {
     //integration
     advanceState(t, dt);
 
-    vec3 v1 = v;
-    v1.y = 0;
-
-    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), normalize(v1)));
-    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), normalize(v1));
-    mat4 rotation_x = rotate(glm::mat4(1.0f), angle_x, axis_x);
+    float angle_x = acos(dot(glm::vec3(1.0f, 0.0f, 0.0f), normalize(direction)));
+    vec3 axis_x = cross(vec3(1.0f, 0.0f, 0.0f), normalize(direction));
+    mat4 rotation_x = rotate(glm::mat4(), angle_x, axis_x);
     mat4 tranlation = translate(mat4(), vec3(x.x, x.y, x.z));
     mat4 scale = glm::scale(mat4(), vec3(size, size, size));
     mat4 rotation = glm::rotate(mat4(), glm::radians(180.0f), vec3(0.0f,1.0f,0.0f));

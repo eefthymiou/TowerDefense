@@ -40,7 +40,12 @@ public:
 
     bool use_rotations = true;
     bool use_sorting = false;
-
+    GLuint emitterVAO;
+    Drawable* model;
+    GLuint transformations_buffer;
+    GLuint rotations_buffer;
+    GLuint scales_buffer;
+    GLuint lifes_buffer;
 
     glm::vec3 emitter_pos; //the origin of the emitter
 
@@ -53,7 +58,7 @@ public:
     
     glm::vec4 calculateBillboardRotationMatrix(glm::vec3 particle_pos, glm::vec3 camera_pos);
 
-    static void configureVAO();
+    void configureVAO();
 
 private:
 
