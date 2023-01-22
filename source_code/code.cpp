@@ -40,7 +40,6 @@ using namespace std::chrono;
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-
 using namespace std;
 using namespace glm;
 
@@ -101,6 +100,8 @@ GLuint sphereVAO, sphereTexture,sphereUVVBO, sphereVerticiesVBO;
 GLuint cubeVAO, cubeVerticiesVBO;
 GLuint ammoVAO, ammoTexture, ammoUVVBO, ammoVerticesVBO;
 GLuint aircraftVAO,aircraftTexture,aircraftUVVBO,aircraftVerticiesVBO;
+GLuint rockVAO,rockTexture,rockUVVBO,rockVerticiesVBO;
+
 std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices, sphereNormals;
 std::vector<vec2> UVs, ninjaUVs,sphereUVs;
 std::vector<vec2> quadUVs;
@@ -109,6 +110,8 @@ std::vector<vec3> cubeVertices, cubeNormals;
 std::vector<vec2> cubeUVs;
 std::vector<vec3> ammoVertices, ammoNormals;
 std::vector<vec2> ammoUVs;
+std::vector<vec3> rockVertices, rockNormals;
+std::vector<vec2> rockUVs;
 
 // particles 
 GLuint particleShaderProgram;
@@ -472,7 +475,8 @@ void createContext() {
     // load texture for quad
     // quadtexture = loadSOIL("../Textures/floor_grass.jpg");
     // quadtexture = loadBMP("../BML_files/lava.bmp");
-    quadtexture = loadSOIL("../Textures/1.png");
+    // quadtexture = loadSOIL("../Textures/grid/DALL·E 2023-01-22 17.51.15 - texture for a grid in a space game.png");
+    quadtexture = loadSOIL("../Textures/grid/DALL·E 2023-01-22 18.51.45.png");
 
     // uvs VBO
     glGenBuffers(1, &quadUVVBO);
@@ -481,6 +485,35 @@ void createContext() {
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
     glEnableVertexAttribArray(1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // rock
+    loadOBJ("../OBJ_files/Cliff_Rock_One_OBJ.obj",
+        rockVertices, 
+        rockUVs,
+        rockNormals);
+    
+    // VAO
+    glGenVertexArrays(1, &rockVAO);
+    glBindVertexArray(rockVAO);
+
+    // vertex VBO
+    glGenBuffers(1, &rockVerticiesVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, rockVerticiesVBO);
+    glBufferData(GL_ARRAY_BUFFER, rockVertices.size() * sizeof(glm::vec3),
+                 &rockVertices[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(0);
+
+
+    // use texture
+    rockTexture = loadSOIL("../Textures/Cliff_Rock_One_Texture4K/Cliff_Rock_One_BaseColor.png");
+    
+    // uvs VBO
+    glGenBuffers(1, &rockUVVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, rockUVVBO);
+    glBufferData(GL_ARRAY_BUFFER, rockUVs.size() * sizeof(glm::vec2),&rockUVs[0], GL_STATIC_DRAW);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
+    glEnableVertexAttribArray(1);
 
     glfwSetKeyCallback(window, pollKeyboard);
 }
@@ -555,6 +588,7 @@ void mainLoop() {
     mat4 ammoModelMatrix;
     mat4 ammoMVP;
     mat4 bulletMVP;
+    float size;
 
     for (int i=0; i<5; i++) { 
         temp_package_ammo.position = get_random_pos();
@@ -563,7 +597,7 @@ void mainLoop() {
         cout<<ammo_packages.size()<<endl;
     }
     do {
-        
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -636,19 +670,20 @@ void mainLoop() {
         }  
 
         // use grid shader
-        glUseProgram(gridshader);
-        glBindVertexArray(quadVAO);
-        float size = 2.0f;
-        mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
-        mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
-        mat4 quadModelMatrix = quadScaling * quadRotate;
-        mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
-        glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, quadtexture);
-        glUniform1i(gtextureSampler, 0);   
-        glUniform3fv(translationsLocation, 100, &translations[0].z); 
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
+        // glUseProgram(gridshader);
+        // glBindVertexArray(quadVAO);
+        // float size = 2.0f;
+        // mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
+        // mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
+        // mat4 quadModelMatrix = quadScaling * quadRotate;
+        // mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
+        // glUniformMatrix4fv(gMVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, quadtexture);
+        // glUniform1i(gtextureSampler, 0);   
+        // glUniform3fv(translationsLocation, 100, &translations[0].z); 
+        // glDrawArraysInstanced(GL_TRIANGLES, 0, 2*3, 100);
+        
 
         // use shaderProgram
         // First Tower
@@ -708,7 +743,6 @@ void mainLoop() {
         glUniform1i(textureSampler, 1); 
         // glDrawArrays(GL_TRIANGLES, 0, cubeVertices.size());
 
-        
         // first aircraft
         if (game) {
             first_aircraft->handle_ammo(&ammo_packages,&health_tower2);
@@ -780,6 +814,32 @@ void mainLoop() {
             glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ammoMVP[0][0]);
             glDrawArrays(GL_TRIANGLES, 0, ammoVertices.size());
         }
+
+        glBindVertexArray(quadVAO);
+        size = 20.0f;
+        mat4 quadScaling = glm::scale(mat4(), vec3(size,0.0f,size));
+        mat4 quadRotate = glm::rotate(mat4(),glm::radians(90.0f),vec3(1.0f,0.0f,0.0f));
+        mat4 quadTranslate = glm::translate(mat4(), vec3(9.0f,0.0f,9.0f));
+        mat4 quadModelMatrix = quadTranslate * quadScaling * quadRotate;
+        mat4 quadMVP = projectionMatrix * viewMatrix * quadModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &quadMVP[0][0]);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, quadtexture);
+        glUniform1i(textureSampler, 4);   
+        glDrawArrays(GL_TRIANGLES, 0, 2*3);
+
+        // rock
+        glBindVertexArray(rockVAO);
+        size = 0.01f;
+        Scaling = glm::scale(mat4(), vec3(size,size,size));
+        Translate = glm::translate(mat4(), vec3(16.0f,0.0f,2.0f));
+        mat4 rockModelMatrix = Translate * Scaling;
+        mat4 rockMVP = projectionMatrix * viewMatrix * rockModelMatrix;
+        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &rockMVP[0][0]);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, rockTexture);
+        glUniform1i(textureSampler, 5);   
+        glDrawArrays(GL_TRIANGLES, 0, rockVertices.size());
 
         // // bullet
         // bullet->bind();
