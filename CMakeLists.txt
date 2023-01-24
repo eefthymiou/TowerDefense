@@ -157,6 +157,8 @@ add_executable(source_code
   common/robot.h
   common/BulletEmitter.cpp
   common/BulletEmitter.h
+  common/light.cpp
+  common/light.h
   
   
 
@@ -168,6 +170,10 @@ add_executable(source_code
   shaders/grid.fragmentshader
   shaders/ParticleShader.vertexshader
   shaders/ParticleShader.fragmentshader
+  shaders/ShadowMapping.frag
+  shaders/ShadowMapping.vert
+  shaders/Depth.frag
+  shaders/Depth.vert
 
   )
 
