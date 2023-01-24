@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "moving_object.h"
+#include "model.h"
 
 
 struct package_ammo {
@@ -18,9 +19,9 @@ struct package_ammo {
 
 glm::vec3 get_random_pos();
 
-class Aircraft :  public Moving_obj {
+class Aircraft :  public Moving_obj, public Drawable {
 public:
-    Aircraft(glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t,int a,int id,glm::vec3 tower_pos);
+    Aircraft(std::string path,glm::vec3 pos,glm::vec3 vel,float mass,glm::vec3 t,int a,int id,glm::vec3 tower_pos);
 public:
     int ammo;
     int id;
@@ -37,15 +38,7 @@ public:
     void handle_ammo(std::vector<package_ammo> *ammo_posisions,int *enemy_tower_health);
     void sortest_path_for_ammo(std::vector<package_ammo> *ammo_positions);
 
-    static void load_mesh(std::string mesh_path);
-    static void loadTexture(const std::string& filename);
-    void bind();
-    void bindTexture();
-    void draw();
-
-
 private:
-    static void createContext();
     void erase_package(std::vector<package_ammo> *ammo_packages);
 };
 #endif

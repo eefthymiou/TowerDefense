@@ -24,14 +24,9 @@ using namespace glm;
 using namespace std;
 
 
-static GLuint VAO, verticesVBO, UVVBO;
-static GLuint Texture;
-static std::vector<glm::vec3> Vertices, Normals;
-static std::vector<glm::vec2> UVs;
 
-
-Aircraft::Aircraft(vec3 pos,vec3 vel,float mass,vec3 t,int a,int i,vec3 tower_pos) : 
-    Moving_obj(pos,vel,mass,t) {
+Aircraft::Aircraft(string path,vec3 pos,vec3 vel,float mass,vec3 t,int a,int i,vec3 tower_pos) : 
+    Moving_obj(pos,vel,mass,t), Drawable (path) {
         ammo = a;
         id = i;
         initial_target = t;
@@ -140,47 +135,3 @@ void Aircraft::update(float t, float dt) {
     modelMatrix = tranlation * rotation * rotation_x * scale;
 }
 
-
-void Aircraft::load_mesh(string model_path){
-    loadOBJ(model_path,Vertices,UVs,Normals);
-    createContext();
-}
-
-void Aircraft::bind() {
-    glBindVertexArray(VAO);
-}
-
-void Aircraft::bindTexture() {
-    glBindTexture(GL_TEXTURE_2D, Texture);
-}
-
-void Aircraft::loadTexture(const std::string& filename){
-    if (filename.length() == 0) return;
-    Texture = loadSOIL(filename.c_str());
-}
-
-void Aircraft::draw() {
-    glDrawArrays(GL_TRIANGLES, 0, Vertices.size());
-}
-
-void Aircraft::createContext() {
-    // VAO
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    // vertex VBO
-    glGenBuffers(1, &verticesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, verticesVBO);
-    glBufferData(GL_ARRAY_BUFFER, Vertices.size() * sizeof(glm::vec3),
-                 &Vertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
-    // uvs VBO
-    glGenBuffers(1, &UVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, UVVBO);
-    glBufferData(GL_ARRAY_BUFFER, UVs.size() * sizeof(glm::vec2),&UVs[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
-
-}

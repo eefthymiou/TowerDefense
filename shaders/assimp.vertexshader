@@ -45,10 +45,6 @@ void main() {
 	// normal = vertex_normal;
     mat4 pinax = mat4(0.01);
     mat4 MVP = proj * view * model * bone_matrices[bone_id];
-    
-    // mat4 MVP = proj * view * model;
-
-
     gl_Position = MVP * vec4 (vertex_position, 1.0);
     UV = texture_coord;
 }

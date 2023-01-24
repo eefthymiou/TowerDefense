@@ -451,7 +451,7 @@ void Animation::bind(){
     glBindVertexArray( vao );
 }
 void Animation::draw(){
-    glDrawArrays(GL_TRIANGLES, 0, point_count );
+  glDrawArrays(GL_TRIANGLES, 0, point_count );
 }
 
 

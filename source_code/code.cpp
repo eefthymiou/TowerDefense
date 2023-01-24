@@ -89,6 +89,9 @@ Drawable* tower;
 Drawable* model2;
 Drawable* model3;
 Drawable* plane;
+Drawable* ammo;
+Drawable* rock;
+GLuint sun_texture;
 GLuint shaderProgram;
 GLuint assimp_shader;
 GLuint gridshader;
@@ -164,6 +167,7 @@ GLuint diffuseColorSampler;
 GLuint specularColorSampler;
 GLuint useTextureLocation;
 GLuint useSpecularTextureLocation;
+GLuint is_animation;
 
 // locations for depthProgram
 GLuint shadowViewProjectionLocation; 
@@ -310,6 +314,14 @@ void createContext() {
 
 	useTextureLocation = glGetUniformLocation(lightingProgram, "useTexture"); 
     useSpecularTextureLocation = glGetUniformLocation(lightingProgram, "useSpecularTexture"); 
+    is_animation = glGetUniformLocation(lightingProgram, "is_animation");
+
+    char name[64];
+    for ( int i = 0; i < MAX_BONES; i++ ) {
+        sprintf( name, "bone_matrices[%i]", i );
+        bone_matrices_locations[i] = glGetUniformLocation( lightingProgram, name );
+        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
+    }
 
 	// locations for shadow rendering
 	depthMapSampler1 = glGetUniformLocation(lightingProgram, "shadowMapSampler1");
@@ -338,12 +350,6 @@ void createContext() {
     projectionAndViewMatrix = glGetUniformLocation(particleShaderProgram, "PV");
     diffuceColorSampler = glGetUniformLocation(particleShaderProgram, "texture0");
 
-    char name[64];
-    for ( int i = 0; i < MAX_BONES; i++ ) {
-        sprintf( name, "bone_matrices[%i]", i );
-        bone_matrices_locations[i] = glGetUniformLocation( assimp_shader, name );
-        glUniformMatrix4fv( bone_matrices_locations[i], 1, GL_FALSE, identity_mat4().m );
-    }
 
 	// -  depth framebuffer and a texture to store the depthmap - //
 	// ---------------------------------------------------------------------------- //
@@ -436,7 +442,9 @@ void createContext() {
 		objUVs.push_back(model2->uvs[i]);
 	}
 	model3 = new Drawable(objVertices,objUVs,objNormals);
-    
+    sun_texture = loadSOIL("../Textures/2k_mars.jpg");
+
+
     // plane
 	vector<vec3> floorVertices = {
 		vec3(-20.0f, 0.0f, -20.0f),
@@ -500,31 +508,8 @@ void createContext() {
     glEnableVertexAttribArray(1);
 
     // ammo
-    loadOBJ("../OBJ_files/ammo.obj",
-        ammoVertices, 
-        ammoUVs,
-        ammoNormals);
-
-    // VAO
-    glGenVertexArrays(1, &ammoVAO);
-    glBindVertexArray(ammoVAO);
-
-    // vertex VBO
-    glGenBuffers(1, &ammoVerticesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, ammoVerticesVBO);
-    glBufferData(GL_ARRAY_BUFFER, ammoVertices.size() * sizeof(glm::vec3),
-                 &ammoVertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
+    ammo = new Drawable("../OBJ_files/ammo.obj");
     ammoTexture = loadSOIL("../Textures/ammo/box_fin_DefaultMaterial_BaseColor.tga");
-    
-    // uvs VBO
-    glGenBuffers(1, &ammoUVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, ammoUVVBO);
-    glBufferData(GL_ARRAY_BUFFER, ammoUVs.size() * sizeof(glm::vec2),&ammoUVs[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
 
     // aircraft
     vec3 position = vec3(14.0f,2.0f,0.0f);
@@ -533,9 +518,7 @@ void createContext() {
     float mass = 2.0f;
     int ammo = 500;
     int id = 0;
-    first_aircraft = new Aircraft(position,vel,mass,target,ammo,id,vec3(16.0f,0.0f,16.0f));
-    first_aircraft->load_mesh("../OBJ_files/aircraft.obj");
-    first_aircraft->loadTexture("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
+    first_aircraft = new Aircraft("../OBJ_files/aircraft.obj",position,vel,mass,target,ammo,id,vec3(16.0f,0.0f,16.0f));
     first_aircraft->at_tower_pos =  vec3(16.0f,0.0f,16.0f);
     first_aircraft->size =  0.08;
 
@@ -545,9 +528,11 @@ void createContext() {
     mass = 2.0f;
     ammo = 500;
     id = 1;
-    second_aircraft = new Aircraft(position,vel,mass,target,ammo,id,vec3(-2.0f,0.0f,-2.0f));
+    second_aircraft = new Aircraft("../OBJ_files/aircraft.obj",position,vel,mass,target,ammo,id,vec3(-2.0f,0.0f,-2.0f));
     second_aircraft->at_tower_pos = vec3(2.0f,0.0f,2.0f);
     second_aircraft->size =  0.08;
+
+    aircraftTexture = loadSOIL("../Textures/aircraft/aircrafttank_DefaultMaterial_BaseColor.png");
 
 
     // amimation
@@ -599,33 +584,8 @@ void createContext() {
 
 
     // rock
-    loadOBJ("../OBJ_files/Cliff_Rock_One_OBJ.obj",
-        rockVertices, 
-        rockUVs,
-        rockNormals);
-    
-    // VAO
-    glGenVertexArrays(1, &rockVAO);
-    glBindVertexArray(rockVAO);
-
-    // vertex VBO
-    glGenBuffers(1, &rockVerticiesVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, rockVerticiesVBO);
-    glBufferData(GL_ARRAY_BUFFER, rockVertices.size() * sizeof(glm::vec3),
-                 &rockVertices[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(0);
-
-
-    // use texture
+    rock = new Drawable("../OBJ_files/Cliff_Rock_One_OBJ.obj");
     rockTexture = loadSOIL("../Textures/Cliff_Rock_One_Texture4K/Cliff_Rock_One_BaseColor.png");
-    
-    // uvs VBO
-    glGenBuffers(1, &rockUVVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, rockUVVBO);
-    glBufferData(GL_ARRAY_BUFFER, rockUVs.size() * sizeof(glm::vec2),&rockUVs[0], GL_STATIC_DRAW);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-    glEnableVertexAttribArray(1);
 
     glfwSetKeyCallback(window, pollKeyboard);
 }
@@ -695,14 +655,14 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     mat4 Translate = glm::translate(mat4(), vec3(2.0f,0.0f,2.0f));
     mat4 Tower1ModelMatrix = Translate * Scaling;
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &Tower1ModelMatrix[0][0]);
-
 	glActiveTexture(GL_TEXTURE1);								
-	glBindTexture(GL_TEXTURE_2D, tower_diffuse_texture);			 
-	glUniform1i(diffuseColorSampler, 1);						
+	glBindTexture(GL_TEXTURE_2D, tower_diffuse_texture);			 						
 	glActiveTexture(GL_TEXTURE2);								
-	glBindTexture(GL_TEXTURE_2D, tower_specular_texture);		
+	glBindTexture(GL_TEXTURE_2D, tower_specular_texture);
+    glUniform1i(diffuseColorSampler, 1);		
 	glUniform1i(specularColorSampler, 2);						
 	glUniform1i(useTextureLocation, 1);
+    glUniform1i(is_animation, 0);
     tower->bind();
     tower->draw();
 
@@ -718,19 +678,6 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     glUniform1i(useSpecularTextureLocation, 1);
     tower->bind();
     tower->draw();
-
-
-    Scaling = glm::scale(mat4(), vec3(0.5, 0.5, 0.5));
-	Translate = translate(mat4(), light1->lightPosition_worldspace);
-	mat4 modelMatrix3 = Translate * Scaling;
-	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &modelMatrix3[0][0]);
-	uploadMaterial(yellow_plastic);
-	glUniform1i(useTextureLocation, 0);
-    glUniform1i(diffuseColorSampler, 1);
-    glUniform1i(specularColorSampler, 2);
-    glUniform1i(useSpecularTextureLocation, 1);
-	model3->bind();
-	model3->draw();
 
 
     size = 2.0f;
@@ -765,18 +712,12 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     }
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &first_aircraft->modelMatrix[0][0]);
     glActiveTexture(GL_TEXTURE4);
-    first_aircraft->bindTexture();
+    glBindTexture(GL_TEXTURE_2D, aircraftTexture);
     glUniform1i(diffuseColorSampler, 4);
     glUniform1i(useTextureLocation, 1);
     glUniform1i(useSpecularTextureLocation, 0);
     first_aircraft->bind();
     first_aircraft->draw();
-    
-    vec3 katheto = glm::cross(normalize(first_aircraft->direction),vec3(0.0f,1.0f,0.0f));
-    bullet_emitters[0].emitter_pos = first_aircraft->x + katheto*0.5f + vec3(0.0f,0.2f,0.0f);
-    bullet_emitters[0].bullet_target = vec3(16.0f,2.0f,16.0f);
-    bullet_emitters[1].emitter_pos = first_aircraft->x - katheto*0.5f + vec3(0.0f,0.2f,0.0f);
-    bullet_emitters[1].bullet_target = vec3(16.0f,2.0f,16.0f);
 
     // second aircraft
     if (game){
@@ -800,12 +741,87 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     second_aircraft->bind();
     second_aircraft->draw();
 
-    katheto = glm::cross(normalize(second_aircraft->direction),vec3(0.0f,1.0f,0.0f));
-    bullet_emitters[2].emitter_pos = second_aircraft->x + katheto*0.5f + vec3(0.0f,0.2f,0.0f);
-    bullet_emitters[2].bullet_target = vec3(2.0f,2.0f,2.0f);
-    bullet_emitters[3].emitter_pos = second_aircraft->x - katheto*0.5f + vec3(0.0f,0.2f,0.0f);
-    bullet_emitters[3].bullet_target = vec3(2.0f,2.0f,2.0f);
+    // ammo
+    vec3 ammo_position;
+    size = 0.03;
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    mat4 Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, ammoTexture);
+    glUniform1i(diffuseColorSampler, 5);
+    glUniform1i(useTextureLocation, 1);
+    glUniform1i(useSpecularTextureLocation, 0);
+    ammo->bind();
+    for (int i=0; i<ammo_packages.size(); i++){
+        ammo_position = ammo_packages[i].position;
+        Translate = glm::translate(mat4(),ammo_position);
+        mat4 ammoModelMatrix = Translate * Rotate * Scaling;
+        glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &ammoModelMatrix[0][0]);
+        ammo->draw();
+    }
 
+    // robots
+    vector<float> f0(6, 0.0f);
+    vec3 force0;
+    glActiveTexture(GL_TEXTURE6);
+    robots[0]->bindTexture();
+    glUniform1i(is_animation, 1);
+    glUniform1i(diffuseColorSampler, 6);
+    glUniform1i(useTextureLocation, 1);
+    glUniform1i(useSpecularTextureLocation, 0);
+    for (int i=0; i<robots.size(); i++){
+        Robot* robot = robots[i];
+        if (robot->health>0.0f){
+            if (game){ 
+                robot->findTarget(&robots);
+                if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
+                else robot->handleShooting(&health_tower1);
+                if (distance(robot->x, robot->target)>0.01){
+                    force0 = robot->seek();
+                    robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
+                        f0[0] = force0.x;
+                        f0[2] = force0.z;
+                        return f0;
+                    };
+                    robot->update(t,dt);
+                }
+            }
+            robot->skeleton_animate(robot->root_node,robot->anim_time, identity_mat4(),robot->bone_offset_matrices, robot->bone_animation_mats );
+            glUniformMatrix4fv( modelMatrixLocation, 1, GL_FALSE, &robot->modelMatrix[0][0]);
+            glUniformMatrix4fv( bone_matrices_locations[0], robot->bone_count, GL_FALSE, robot->bone_animation_mats[0].m );
+            robot->bind();
+            robot->draw();
+        }
+        else if (game) robot->handleHealth(); 
+    }
+
+    // rock
+    size = 0.01f;
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    Translate = glm::translate(mat4(), vec3(16.0f,0.0f,2.0f));
+    mat4 rockModelMatrix = Translate * Scaling;
+    glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &rockModelMatrix[0][0]);
+    glActiveTexture(GL_TEXTURE7);
+    glBindTexture(GL_TEXTURE_2D, rockTexture);
+    glUniform1i(is_animation, 0);
+    glUniform1i(diffuseColorSampler, 7);
+    glUniform1i(useTextureLocation, 1);
+    glUniform1i(useSpecularTextureLocation, 0);
+    rock->bind();
+    rock->draw();
+
+    Scaling = glm::scale(mat4(), vec3(0.1, 0.1, 0.1));
+	Translate = translate(mat4(), light1->lightPosition_worldspace);
+	mat4 modelMatrix3 = Translate * Scaling;
+	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &modelMatrix3[0][0]);
+	glActiveTexture(GL_TEXTURE8);								
+	glBindTexture(GL_TEXTURE_2D, sun_texture);
+    glUniform1i(is_animation, 0);
+	glUniform1i(useTextureLocation, 1);
+    glUniform1i(diffuseColorSampler, 8);
+    glUniform1i(useSpecularTextureLocation, 0);
+	model3->bind();
+	model3->draw();
 }
 
 void mainLoop() {
@@ -868,63 +884,7 @@ void mainLoop() {
         
         lighting_pass(viewMatrix,projectionMatrix,t,dt);
 
-        
-        glUseProgram(assimp_shader);
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(assimptextureSampler, 0);
-
-        vector<float> f0(6, 0.0f);
-        vec3 force0;
-        vec3 katheto;
-        int j;
-        for (int i=0; i<robots.size(); i++){
-            j=i+2;
-            Robot* robot = robots[i];
-            
-            if (robot->health>0.0f){
-                if (game){ 
-                    robot->findTarget(&robots);
-                    if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
-                    else robot->handleShooting(&health_tower1);
-                    if (distance(robot->x, robot->target)>0.01){
-                        force0 = robot->seek();
-                        robot->forcing = [&](float t, const vector<float>& y)->vector<float> {
-                            f0[0] = force0.x;
-                            f0[2] = force0.z;
-                            return f0;
-                        };
-                        robot->update(t,dt);
-                    }
-                }
-                robot->bindTexture();
-                robot->bind();
-                robot->skeleton_animate(robot->root_node,robot->anim_time, identity_mat4(),robot->bone_offset_matrices, robot->bone_animation_mats );
-                glUniformMatrix4fv( model_mat_location, 1, GL_FALSE, &robot->modelMatrix[0][0]);
-                glUniformMatrix4fv( view_mat_location, 1, GL_FALSE, &viewMatrix[0][0] );
-                glUniformMatrix4fv( proj_mat_location, 1, GL_FALSE, &projectionMatrix[0][0]);
-                glUniformMatrix4fv( bone_matrices_locations[0], robot->bone_count, GL_FALSE, robot->bone_animation_mats[0].m );
-                robot->draw();
-            }
-            else if (game) robot->handleHealth(); 
-        
-            katheto = glm::cross(normalize(robot->direction),vec3(0.0f,1.0f,0.0f));
-            
-            bullet_emitters[2*j+1].emitter_pos = robot->x + katheto*0.3f;
-            bullet_emitters[2*j+1].bullet_target = robot->target;
-
-            bullet_emitters[2*j].emitter_pos = robot->x - katheto*0.3f;
-            bullet_emitters[2*j].bullet_target = robot->target;
-
-            // robot0 -> 4,5
-            // robot1 -> 6,7
-            // robot3 -> 8,9
-            // robot4 -> 10,11
-            // robot5 -> 12,13
-        }  
-        
-
         // use shaderProgram
-        // First Tower
         glUseProgram(shaderProgram);
 
         // Sphere
@@ -939,39 +899,6 @@ void mainLoop() {
         glBindTexture(GL_TEXTURE_2D, sphereTexture);
         glUniform1i(textureSampler, 1); 
         glDrawArrays(GL_TRIANGLES, 0, sphereVertices.size());
-
-
-        // ammo
-        glBindVertexArray(ammoVAO);
-        size = 0.03;
-        Scaling = glm::scale(mat4(), vec3(size,size,size));
-        Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, ammoTexture);
-        glUniform1i(textureSampler, 3); 
-        for (int i=0; i<ammo_packages.size(); i++){
-            ammo_position = ammo_packages[i].position;
-            Translate = glm::translate(mat4(),ammo_position);
-            ammoModelMatrix = Translate * Rotate * Scaling;
-            ammoMVP = projectionMatrix * viewMatrix * ammoModelMatrix;
-            glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &ammoMVP[0][0]);
-            glDrawArrays(GL_TRIANGLES, 0, ammoVertices.size());
-        }
-
-
-        // rock
-        glBindVertexArray(rockVAO);
-        size = 0.01f;
-        Scaling = glm::scale(mat4(), vec3(size,size,size));
-        Translate = glm::translate(mat4(), vec3(16.0f,0.0f,2.0f));
-        mat4 rockModelMatrix = Translate * Scaling;
-        mat4 rockMVP = projectionMatrix * viewMatrix * rockModelMatrix;
-        glUniformMatrix4fv(MVPLocation, 1, GL_FALSE, &rockMVP[0][0]);
-        glActiveTexture(GL_TEXTURE5);
-        glBindTexture(GL_TEXTURE_2D, rockTexture);
-        glUniform1i(textureSampler, 5);   
-        glDrawArrays(GL_TRIANGLES, 0, rockVertices.size());
-
 
 
         glUseProgram(particleShaderProgram);
@@ -992,8 +919,37 @@ void mainLoop() {
             (*f_emitter).updateParticles(currentTime, dt_particles, camera->position);
             (*f_emitter).renderParticles();
         }
-        // bullet 
-        
+
+
+        // bullet
+        vec3 katheto;
+        int j;
+        for (int i=0; i<robots.size(); i++){
+            j=i+2;
+            katheto = glm::cross(normalize(robots[i]->direction),vec3(0.0f,1.0f,0.0f));
+            bullet_emitters[2*j+1].emitter_pos = robots[i]->x + katheto*0.3f;
+            bullet_emitters[2*j+1].bullet_target = robots[i]->target;
+
+            bullet_emitters[2*j].emitter_pos = robots[i]->x - katheto*0.3f;
+            bullet_emitters[2*j].bullet_target = robots[i]->target;
+        }
+        // robot0 -> 4,5
+        // robot1 -> 6,7
+        // robot3 -> 8,9
+        // robot4 -> 10,11
+        // robot5 -> 12,13 
+        katheto = glm::cross(normalize(first_aircraft->direction),vec3(0.0f,1.0f,0.0f));
+        bullet_emitters[0].emitter_pos = first_aircraft->x + katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[0].bullet_target = vec3(16.0f,2.0f,16.0f);
+        bullet_emitters[1].emitter_pos = first_aircraft->x - katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[1].bullet_target = vec3(16.0f,2.0f,16.0f);
+        katheto = glm::cross(normalize(second_aircraft->direction),vec3(0.0f,1.0f,0.0f));
+        bullet_emitters[2].emitter_pos = second_aircraft->x + katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[2].bullet_target = vec3(2.0f,2.0f,2.0f);
+        bullet_emitters[3].emitter_pos = second_aircraft->x - katheto*0.5f + vec3(0.0f,0.2f,0.0f);
+        bullet_emitters[3].bullet_target = vec3(2.0f,2.0f,2.0f);
+
+
         bullet_emitters[0].use_rotations = true;
         bullet_emitters[0].use_sorting = false;
         glActiveTexture(GL_TEXTURE1);
@@ -1109,11 +1065,11 @@ void initialize() {
 	// Task 1.1 Creating a light source
 	// Creating a custom light 
 	light1 = new Light(window,
-		vec4{ 1, 1, 1, 1 },
-		vec4{ 1, 1, 1, 1 },
-		vec4{ 1, 1, 1, 1 },
-		vec3{ 5, 4, 5 },
-		30.0f
+		vec4{ 1, 0.7, 0.7, 1 },
+		vec4{ 1, 0.7, 0.7, 1 },
+		vec4{ 1, 0.7, 0.7, 1 },
+		vec3{ 9, 4, 9 },
+		2.0f
 	);
 
     // Log
