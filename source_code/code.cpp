@@ -477,8 +477,8 @@ void createContext() {
 	};
 
     plane = new Drawable(floorVertices, floorUVs, floorNormals);
-    planetexture = loadSOIL("../Textures/grid/DALL·E 2023-01-22 18.51.45.png");
-
+    // planetexture = loadSOIL("../Textures/grid/DALL·E 2023-01-22 18.51.45.png");
+    planetexture = loadSOIL("../Textures/grid/DALL·E 2023-01-24 16.49.51 - texture for template in 2d space game (white with abstract lines).png");
 
     // sphere
     loadOBJ("../OBJ_files/sphere.obj",
@@ -679,13 +679,13 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     tower->bind();
     tower->draw();
 
-
+    // plane
+    // size = 0.5f;
     size = 2.0f;
-    Scaling = glm::scale(mat4(), vec3(0.5, 0.5, 0.5));
+    Scaling = glm::scale(mat4(), vec3(size, size, size));
     Translate = glm::translate(mat4(), vec3(9.0f,0.0f,9.0f));
     mat4 planeMatrix = Translate * Scaling;
     glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &planeMatrix[0][0]);
-
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, planetexture);
     glUniform1i(diffuseColorSampler, 3);
@@ -810,6 +810,7 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     rock->bind();
     rock->draw();
 
+    // sun
     Scaling = glm::scale(mat4(), vec3(0.1, 0.1, 0.1));
 	Translate = translate(mat4(), light1->lightPosition_worldspace);
 	mat4 modelMatrix3 = Translate * Scaling;
@@ -823,6 +824,114 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
 	model3->bind();
 	model3->draw();
 }
+
+
+void depth_pass(mat4 viewMatrix, mat4 projectionMatrix,GLuint depthFrameBuffer, float t) {
+
+	// Task 3.3
+	//*/
+	// Setting viewport to shadow map size
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+
+	// // Binding the depth framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, depthFrameBuffer);
+
+	// Cleaning the framebuffer depth information (stored from the last render)
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// Selecting the new shader program that will output the depth component
+	glUseProgram(depthProgram);
+
+
+	// ---- rendering the scene ---- //
+	
+    
+    // tower1
+    float size = 0.02f;
+    vec3 model_position = vec3(2.0f,0.0f,2.0f);
+    mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
+    mat4 Translate = glm::translate(mat4(), model_position);
+    mat4 Tower1ModelMatrix = Translate * Scaling;
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &Tower1ModelMatrix[0][0]);
+    
+    light1->targetPosition = model_position - light1->lightPosition_worldspace;
+    light1->update();
+	mat4 view_projection = projectionMatrix * viewMatrix;
+	glUniformMatrix4fv(shadowViewProjectionLocation, 1, GL_FALSE, &view_projection[0][0]);
+    tower->bind();
+    tower->draw();
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFrameBuffer);
+
+    // tower 2
+    glClear(GL_DEPTH_BUFFER_BIT);
+    size = 0.02f;
+    model_position = vec3(16.0f,0.0f,16.0f);
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    Translate = glm::translate(mat4(), model_position);
+    mat4 Tower2ModelMatrix = Translate * Scaling;
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &Tower2ModelMatrix[0][0]);
+    
+
+    light1->targetPosition = (model_position - light1->lightPosition_worldspace);
+    light1->update();
+	view_projection = projectionMatrix * viewMatrix;
+	glUniformMatrix4fv(shadowViewProjectionLocation, 1, GL_FALSE, &view_projection[0][0]);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFrameBuffer);    
+    tower->bind();
+    tower->draw();
+
+    /*
+    // plane
+    size = 2.0f;
+    Scaling = glm::scale(mat4(), vec3(0.5, 0.5, 0.5));
+    Translate = glm::translate(mat4(), vec3(9.0f,0.0f,9.0f));
+    mat4 planeMatrix = Translate * Scaling;
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &planeMatrix[0][0]);
+    plane->bind();
+    plane->draw();
+
+    // ammo
+    vec3 ammo_position;
+    size = 0.03;
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    mat4 Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
+    ammo->bind();
+    for (int i=0; i<ammo_packages.size(); i++){
+        ammo_position = ammo_packages[i].position;
+        Translate = glm::translate(mat4(),ammo_position);
+        mat4 ammoModelMatrix = Translate * Rotate * Scaling;
+        glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &ammoModelMatrix[0][0]);
+        ammo->draw();
+    }
+
+    // first aircraft
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &first_aircraft->modelMatrix[0][0]);
+    first_aircraft->bind();
+    first_aircraft->draw();
+
+    // second aircraft
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &second_aircraft->modelMatrix[0][0]);
+    second_aircraft->bind();
+    second_aircraft->draw();
+
+    // robots
+
+    for (int i=0; i<robots.size(); i++){
+        Robot* robot = robots[i];
+        if (robot->health>0.0f){
+            glUniformMatrix4fv( shadowModelLocation, 1, GL_FALSE, &robot->modelMatrix[0][0]);
+            robot->bind();
+            robot->draw();
+        }
+    }
+    */
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthFrameBuffer);
+	
+	
+}
+
 
 void mainLoop() {
     IMGUI_CHECKVERSION();
@@ -844,20 +953,16 @@ void mainLoop() {
 
 
     package_ammo temp_package_ammo;
-    vec3 position;
-
-    vec3 ammo_position;
-    mat4 ammoModelMatrix;
-    mat4 ammoMVP;
-    mat4 bulletMVP;
     float size;
-
     for (int i=0; i<5; i++) { 
         temp_package_ammo.position = get_random_pos();
         temp_package_ammo.available = true;
         ammo_packages.push_back(temp_package_ammo);
         cout<<ammo_packages.size()<<endl;
     }
+
+
+
     do {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable( GL_DEPTH_TEST );
@@ -872,17 +977,22 @@ void mainLoop() {
         // float dt = glfwGetTime()-t;
         float dt = 0.1;
 
-        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS){
-			light1->update();
-			light_proj1 = light1->projectionMatrix;
-			light_view1 = light1->viewMatrix;
-		}
+    
+		light1->update();
+		light_proj1 = light1->projectionMatrix;
+		light_view1 = light1->viewMatrix;
+		
+        depth_pass(light_view1, light_proj1, depthFrameBuffer,t);
 
         camera->update();
         projectionMatrix = camera->projectionMatrix;
         viewMatrix = camera->viewMatrix;
         
+       
         lighting_pass(viewMatrix,projectionMatrix,t,dt);
+
+
+        
 
         // use shaderProgram
         glUseProgram(shaderProgram);
@@ -1065,11 +1175,11 @@ void initialize() {
 	// Task 1.1 Creating a light source
 	// Creating a custom light 
 	light1 = new Light(window,
-		vec4{ 1, 0.7, 0.7, 1 },
-		vec4{ 1, 0.7, 0.7, 1 },
-		vec4{ 1, 0.7, 0.7, 1 },
-		vec3{ 9, 4, 9 },
-		2.0f
+		vec4{ 1, 1, 1, 1 },
+		vec4{ 1, 1, 1, 1 },
+		vec4{ 1, 1, 1, 1 },
+		vec3{ 9, 8, 9 },
+		30.0f
 	);
 
     // Log

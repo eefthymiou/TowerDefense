@@ -21,11 +21,8 @@ Light::Light(GLFWwindow* window,
     // setting near and far plane affects the detail of the shadow
     nearPlane = 1.0;
     farPlane = 30.0;
-
-    direction = normalize(targetPosition - lightPosition_worldspace);
-
     lightSpeed = 0.1f;
-    targetPosition = glm::vec3(0.0, 0.0, -5.0);
+    
 
 
     projectionMatrix = ortho(-10.0f, 10.0f, -10.0f, 10.0f, nearPlane, farPlane);

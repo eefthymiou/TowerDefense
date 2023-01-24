@@ -51,8 +51,7 @@ void main() {
     // Task 4.3
     float shadow1  = ShadowCalculation(vertex_position_lightspace1,light1,shadowMapSampler1);
 
-    // float visibility1 = 1.0f - shadow1;
-    float visibility1 = 1.0f;
+    float visibility1 = 1.0f - shadow1;
 
     fragmentColor = phong(visibility1,light1);
 }
@@ -127,14 +126,14 @@ vec4 phong(float visibility, Light light) {
 
     // use texture for materials
     if (useTexture == 1) {
-        if (useSpecularTexture == 1 ) _Ks = 0.1*vec4(texture(specularColorSampler, vertex_UV).rgb, 1.0);
-        _Kd = 0.6*vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
-        _Ka = 0.5*vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
+        if (useSpecularTexture == 1 ) _Ks = vec4(texture(specularColorSampler, vertex_UV).rgb, 1.0);
+        _Kd = vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
+        _Ka = 0.1*vec4(texture(diffuseColorSampler, vertex_UV).rgb, 1.0);
         _Ns = 10;
     }
     
     // model ambient intensity (Ia)
-    vec4 Ia = light.La * _Ka;
+    vec4 Ia = 2 * light.La * _Ka;
 
     // model diffuse intensity (Id)
     vec3 N = normalize(vertex_normal_cameraspace); 
@@ -151,24 +150,24 @@ vec4 phong(float visibility, Light light) {
 
     //model the light distance effect
     float distance = length(light.lightPosition_worldspace - vertex_position_worldspace);
-    // float distance_sq = (distance * distance);
-    float max_distance = 10.0f;
-    float factor_of_distance = (distance/max_distance) * 0.5 + 0.5;
+    float distance_sq = (distance * distance);
     
-
     // final fragment color
-    // vec4 fragmentColor_ = vec4(
-    //     Ia + 
-    //     visibility * Id * light.power / distance_sq );
-
-    // if (useSpecularTexture == 1) fragmentColor_ +=  visibility * Is * light.power / distance_sq;
-    // return fragmentColor_;
-
     vec4 fragmentColor_ = vec4(
         Ia + 
-        visibility * Id * light.power / factor_of_distance );
+        visibility * Id * light.power / distance_sq );
 
-    if (useSpecularTexture == 1) fragmentColor_ +=  visibility * Is * light.power /factor_of_distance  ;
+    if (useSpecularTexture == 1) fragmentColor_ +=  visibility * Is * light.power / distance_sq;
+    return fragmentColor_;
+
+    // float max_distance = 10.0f;
+    // float factor_of_distance = (distance/max_distance) * 0.5 + 0.5;
+    // vec4 fragmentColor_ = vec4(
+    //     Ia + 
+    //     visibility * Id * light.power / factor_of_distance );
+
+    // if (useSpecularTexture == 1) fragmentColor_ +=  visibility * Is * light.power /factor_of_distance  ;
+
     return fragmentColor_;
     
 }
