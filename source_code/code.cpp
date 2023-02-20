@@ -28,7 +28,7 @@
 #include <common/FireEmitter.h>
 #include <common/BulletEmitter.h>
 #include <common/light.h>
-// #include "common/gl_utils.h"
+
 
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -93,8 +93,6 @@ Drawable* ammo;
 Drawable* rock;
 GLuint sun_texture;
 GLuint shaderProgram;
-GLuint assimp_shader;
-GLuint gridshader;
 GLuint depthProgram;
 GLuint lightingProgram;
 GLuint MVPLocation;
@@ -283,10 +281,8 @@ void uploadMaterial(const Material& mtl) {
 
 void createContext() {
     // Create and compile our GLSL program from the shaders
-    shaderProgram = loadShaders("../shaders/texture.vertexshader", "../shaders/texture.fragmentshader");
-    particleShaderProgram = loadShaders("../shaders/ParticleShader.vertexshader","../shaders/ParticleShader.fragmentshader");
-    gridshader = loadShaders("../shaders/grid.vertexshader", "../shaders/grid.fragmentshader");
-    assimp_shader = loadShaders("../shaders/assimp.vertexshader", "../shaders/assimp.fragmentshader");
+    shaderProgram = loadShaders("../shaders/texture.vert", "../shaders/texture.frag");
+    particleShaderProgram = loadShaders("../shaders/ParticleShader.vert","../shaders/ParticleShader.frag");
     lightingProgram = loadShaders("../shaders/ShadowMapping.vert","../shaders/ShadowMapping.frag");
     depthProgram = loadShaders("../shaders/Depth.vert","../shaders/Depth.frag");
 
@@ -334,17 +330,6 @@ void createContext() {
     // shaderProgram
     MVPLocation = glGetUniformLocation(shaderProgram, "MVP");
     textureSampler = glGetUniformLocation(shaderProgram, "textureSampler");
-
-    // grid shader
-    gMVPLocation = glGetUniformLocation(gridshader, "MVP");
-    translationsLocation = glGetUniformLocation(gridshader, "grid");
-    gtextureSampler = glGetUniformLocation(gridshader, "textureSampler");
-
-    // assimp shader
-    model_mat_location = glGetUniformLocation(assimp_shader, "model");
-    view_mat_location = glGetUniformLocation(assimp_shader, "view");
-    proj_mat_location = glGetUniformLocation(assimp_shader, "proj");
-    assimptextureSampler = glGetUniformLocation(assimp_shader, "textureSampler");
     
     // particle shader
     projectionAndViewMatrix = glGetUniformLocation(particleShaderProgram, "PV");
@@ -592,8 +577,6 @@ void createContext() {
 
 void free() {
     glDeleteProgram(shaderProgram);
-    glDeleteProgram(gridshader);
-    glDeleteProgram(assimp_shader);
     glDeleteProgram(particleShaderProgram);
     glDeleteProgram(lightingProgram);
     glDeleteProgram(depthProgram);
@@ -620,7 +603,7 @@ void check_game(){
 void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     // Step 1: Binding a frame buffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, W_WIDTH, W_HEIGHT);
+	glViewport(0, 0, W_WIDTH * 2, W_HEIGHT * 2);
 
 	// Step 2: Clearing color and depth info
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
