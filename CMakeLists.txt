@@ -157,17 +157,19 @@ add_executable(source_code
   common/robot.h
   common/BulletEmitter.cpp
   common/BulletEmitter.h
+  common/light.cpp
+  common/light.h
   
   
 
-  shaders/texture.fragmentshader
-  shaders/texture.vertexshader
-  shaders/assimp.vertexshader
-  shaders/assimp.fragmentshader
-  shaders/grid.vertexshader
-  shaders/grid.fragmentshader
-  shaders/ParticleShader.vertexshader
-  shaders/ParticleShader.fragmentshader
+  shaders/texture.frag
+  shaders/texture.vert
+  shaders/ParticleShader.vert
+  shaders/ParticleShader.frag
+  shaders/ShadowMapping.frag
+  shaders/ShadowMapping.vert
+  shaders/Depth.frag
+  shaders/Depth.vert
 
   )
 
