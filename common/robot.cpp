@@ -29,6 +29,8 @@ Robot::Robot(const char*  path,vec3 pos,vec3 vel,float mass,vec3 t,int tower,flo
     enemy_tower_pos = t;
     initial_pos = pos;
     initial_vel = vel;
+    health = 1.0f;
+    alive = false;
 }
 
 void Robot::findTarget(std::vector<Robot*> *robots){
@@ -39,7 +41,7 @@ void Robot::findTarget(std::vector<Robot*> *robots){
 
     for (int i=0; i<(*robots).size(); i++){
         // cheack if robots are not in the same team
-        if ((*robots)[i]->team_tower != team_tower && (*robots)[i]->health > 0.0f) {
+        if ((*robots)[i]->team_tower != team_tower && (*robots)[i]->health > 0.0f && (*robots)[i]->alive) {
             dis = length((*robots)[i]->x - x);
             if (dis<=min_dis){
                 thesi = i;
@@ -59,6 +61,7 @@ void Robot::findTarget(std::vector<Robot*> *robots){
 void Robot::handleShooting(int *enemy_tower_health){
     float dis;
     shoots = false;
+    
     if (has_enemy_robot){
         dis = length(x-enemy_robot->x);
         direction = v;
@@ -70,8 +73,7 @@ void Robot::handleShooting(int *enemy_tower_health){
     }
     else {
         dis = length(x-enemy_tower_pos);
-        if (team_tower==2) direction = -enemy_tower_pos;
-        else direction = enemy_tower_pos;
+        direction = v;
         direction.y = 0;
         if (dis<10.0f){
             (*enemy_tower_health) -= 1 * (1/length(x-enemy_tower_pos)<5.0f);

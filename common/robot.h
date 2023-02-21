@@ -15,7 +15,7 @@ public:
     glm::vec3 direction;
     float anim_time;
     int team_tower;
-    float health = 1.0f;
+    float health;
     bool alive;
     float timmer=0.0f;
     Robot* enemy_robot;

@@ -97,7 +97,7 @@ void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_t
         if (distance < 5.0f){
             // start shoot... decreases ammo
             ammo-=1;
-            (*enemy_tower_health) -= 1;
+            (*enemy_tower_health) -= 0.0005;
             shoots = true;
         }
         direction = real_tower_pos;

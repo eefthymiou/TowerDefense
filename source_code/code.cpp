@@ -174,8 +174,8 @@ GLuint depthFrameBuffer;
 GLuint depthTexture;
 
 // gui variables
-int health_tower1 = 20000;
-int health_tower2 = 20000;
+int health_tower1 = 10000;
+int health_tower2 = 10000;
 bool game = true;
 bool game_ends = false;
 
@@ -198,17 +198,19 @@ void renderHelpingWindow(){
     ImGui::Begin("Helper Window");                          // Create a window called "Hello, world!" and append into it.
 
     ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-    ImGui::Text("Health tower 1: %d",health_tower1/200);
-    ImGui::Text("Health tower 2: %d",health_tower2/200);
+    ImGui::Text("Health tower 1: %d",health_tower1/100);
+    ImGui::Text("Health tower 2: %d",health_tower2/100);
 
     string health;
     int asterakia;
     for (int i=0; i<robots.size(); i++){
-        health = "";
-        asterakia = robots[i]->health * 10 + 0.5;
-        for (int j=0; j<asterakia; j++) health += "*";
-        char* c = const_cast<char*>(health.c_str());
-        ImGui::Text("robot %d: %s",robots[i]->team_tower,c);
+        if (robots[i]->alive){
+            health = "";
+            asterakia = robots[i]->health * 10 + 0.5;
+            for (int j=0; j<asterakia; j++) health += "*";
+            char* c = const_cast<char*>(health.c_str());
+            ImGui::Text("robot %d: %s",robots[i]->team_tower,c);
+        }
     }
     if (!game_ends){
         if (!game) ImGui::Text("Game Paused.");
@@ -524,47 +526,40 @@ void createContext() {
     // generate positions for robots 
     generate_robots_info();
     Robot* robot;
-    vec3 tower1_pos = vec3(2.0f,0.5f,2.0f);
-    vec3 tower2_pos = vec3(16.0,0.5f,16.0f);
+    vec3 tower1_pos = vec3(2.0f,0.9f,2.0f);
+    vec3 tower2_pos = vec3(16.0,0.9f,16.0f);
 
     robot_info c_r_info;
     c_r_info = robots_info[0];
-    target = vec3(15.0f,0.9f,15.0f);
+   
     
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
     robots.push_back(robot);
 
     c_r_info = robots_info[1];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
     robots.push_back(robot);
 
     c_r_info = robots_info[2];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,1,c_r_info.maxspeed);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
     robots.push_back(robot);
 
     c_r_info = robots_info[3];
-    target = vec3(3.0f,0.9f,3.0f);
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
     robots.push_back(robot);
     
     c_r_info = robots_info[4];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
     robots.push_back(robot);
 
     c_r_info = robots_info[5];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,target,2,c_r_info.maxspeed);
+    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
     robot->loadTexture("../Models/Texture_0.jpg");
-    robot->health = 1.0f;
     robots.push_back(robot);
 
 
@@ -584,19 +579,30 @@ void free() {
     glfwTerminate();
 }
 
-
-
-
 void check_game(){
     if (health_tower2<=0) {
+        // game ends and player 1 wins
         game_ends = true;
         game = false; 
         (*f_emitter).emitter_pos = vec3(16.0f,0.1f,16.0f);
     }
     if (health_tower1<=0){
+        // game ends andd player 2 wins
         game_ends = true;
         game = false;
         (*f_emitter).emitter_pos = vec3(2.0f,0.1f,2.0f);
+    }
+    if (health_tower1 <= 8000 || health_tower2 <= 8000){
+        // phase 1 -> two robots are alive
+        robots[0]-> alive = true;
+        robots[2]-> alive = true;
+        robots[4]-> alive = true;
+        robots[5]-> alive = true;
+
+    }
+    if (health_tower1 <=5000 || health_tower2 <= 5000){
+        // phase 2 -> all robots are alive
+        for (int i=0; i<robots.size(); i++) robots[i]->alive = true;
     }
 }
 
@@ -742,7 +748,7 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
         glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &ammoModelMatrix[0][0]);
         ammo->draw();
     }
-
+    
     // robots
     vector<float> f0(6, 0.0f);
     vec3 force0;
@@ -754,7 +760,7 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     glUniform1i(useSpecularTextureLocation, 0);
     for (int i=0; i<robots.size(); i++){
         Robot* robot = robots[i];
-        if (robot->health>0.0f){
+        if (robot->health>0.0f && robot->alive){
             if (game){ 
                 robot->findTarget(&robots);
                 if (robot->team_tower == 1 ) robot->handleShooting(&health_tower2);
