@@ -2,8 +2,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdlib>
-
 
 // Include GLEW
 #include <GL/glew.h>
@@ -14,16 +12,13 @@
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/string_cast.hpp>
+
 
 #include "aircraft.h"
-#include "model.h"
 #include "texture.h"
 
 using namespace glm;
 using namespace std;
-
-
 
 Aircraft::Aircraft(string path,vec3 pos,vec3 vel,float mass,vec3 t,int a,int i,vec3 tower_pos) : 
     Moving_obj(pos,vel,mass,t), Drawable (path) {
@@ -33,7 +28,6 @@ Aircraft::Aircraft(string path,vec3 pos,vec3 vel,float mass,vec3 t,int a,int i,v
         find_ammo = false;
         real_tower_pos = tower_pos;
 }
-
 
 void Aircraft::sortest_path_for_ammo(std::vector<package_ammo> *ammo_packages){
     float dis;
@@ -57,10 +51,9 @@ void Aircraft::sortest_path_for_ammo(std::vector<package_ammo> *ammo_packages){
 }
 
 vec3 get_random_pos(){
-    int N = 10;
-    float x = rand() % N + 4.0f;
-    float y = rand() % N + 2.0f;
-    float z = rand() % N + 4.0f;
+    float x = rand() % 10 + 4.0f;
+    float y = rand() % 5 + 2.0f;
+    float z = rand() % 10 + 4.0f;
     return vec3(x,y,z);
 }
 
@@ -106,7 +99,6 @@ void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_t
         if (distance<1.0f){
             // aircraft now has ammo... return to the tower
             erase_package(ammo_packages);
-            cout << "ammo full. RETURN TO TOWER" << endl;
             target = initial_target;
             ammo = 500;
             find_ammo = false;
@@ -116,7 +108,6 @@ void Aircraft::handle_ammo(std::vector<package_ammo> *ammo_packages,int *enemy_t
     }
     else if (ammo==0 && find_ammo==false){
         // target now is to find ammo
-        cout << "out of ammo" << endl;
         sortest_path_for_ammo(ammo_packages);
         find_ammo = true;
     }

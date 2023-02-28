@@ -12,6 +12,7 @@ uniform sampler2D specularColorSampler;
 
 
 uniform int useTexture = 0;
+uniform int useShadows;
 uniform int useSpecularTexture = 0;
 uniform mat4 V;
 
@@ -26,8 +27,6 @@ struct Light {
     float power;
 };
 uniform Light light1;
-
-
 
 // materials
 struct Material {
@@ -49,11 +48,14 @@ float ShadowCalculation(vec4 fragPositionLightspace, Light light,sampler2D diffu
 void main() {   
     
     // Task 4.3
-    float shadow1  = ShadowCalculation(vertex_position_lightspace1,light1,shadowMapSampler1);
-
-    // float visibility1 = 1.0f - shadow1;
-    float visibility1 = 1.0f;
-
+    float visibility1;
+    
+    if (useShadows==1){
+        float shadow1  = ShadowCalculation(vertex_position_lightspace1,light1,shadowMapSampler1);
+        visibility1 = 1.0f - shadow1;
+    }
+    else visibility1 = 1.0f;
+    
     fragmentColor = phong(visibility1,light1);
 }
 

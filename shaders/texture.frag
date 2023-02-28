@@ -13,6 +13,4 @@ void main()
 {
     vec4 main_texture = vec4(texture(textureSampler, UV).rgb, 1);
     color = main_texture;
-    
-    // color = vec4(0.0, 1.0, 0.0, 1.0);
 }

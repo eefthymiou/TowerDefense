@@ -84,10 +84,9 @@ FireEmitter* f_emitter;
 BulletEmitter* b_emitter;
 std::vector<BulletEmitter> bullet_emitters;
 std::vector<robot_info> robots_info;
-Moving_obj* planet1;
 Drawable* tower;
-Drawable* model2;
-Drawable* model3;
+Drawable* model;
+Drawable* sun;
 Drawable* plane;
 Drawable* ammo;
 Drawable* rock;
@@ -96,58 +95,26 @@ GLuint shaderProgram;
 GLuint depthProgram;
 GLuint lightingProgram;
 GLuint MVPLocation;
-GLuint gMVPLocation;
-GLuint assimpMVPLocation;
-GLuint translationsLocation;
 GLuint textureSampler;
-GLuint assimptextureSampler;
-GLuint gtextureSampler;
-
 GLuint tower_main_texture;
 GLuint tower_diffuse_texture;
 GLuint tower_specular_texture;
-
 GLuint planetexture;
 GLuint bulletTexture;
-GLuint movingTexture;
-GLuint movingTextureSampler;
-GLuint displacementTexture;
-GLuint displacementTextureSampler;
-GLuint timeUniform;
-GLuint VAO;
-GLuint quadVAO, ninjaVAO;
-GLuint quadVerticiesVBO, ninjaVerticiesVBO, ninjaUVVBO;
-GLuint VerticiesVBO, UVVBO;
-GLuint quadUVVBO;
+GLuint aircraftTexture;
+GLuint ammoTexture;
+GLuint rockTexture;
 GLuint sphereVAO, sphereTexture,sphereUVVBO, sphereVerticiesVBO;
-GLuint cubeVAO, cubeVerticiesVBO;
-GLuint ammoVAO, ammoTexture, ammoUVVBO, ammoVerticesVBO;
-GLuint aircraftVAO,aircraftTexture,aircraftUVVBO,aircraftVerticiesVBO;
-GLuint rockVAO,rockTexture,rockUVVBO,rockVerticiesVBO;
-
-std::vector<vec3> Vertices, Normals, ninjaVertices, ninjaNormals, sphereVertices, sphereNormals;
-std::vector<vec2> UVs, ninjaUVs,sphereUVs;
-std::vector<vec2> quadUVs;
-
-std::vector<vec3> cubeVertices, cubeNormals;
-std::vector<vec2> cubeUVs;
-std::vector<vec3> ammoVertices, ammoNormals;
-std::vector<vec2> ammoUVs;
-std::vector<vec3> rockVertices, rockNormals;
-std::vector<vec2> rockUVs;
+std::vector<vec3> sphereVertices, sphereNormals;
+std::vector<vec2> sphereUVs;
 
 // particles 
 GLuint particleShaderProgram;
 GLuint projectionMatrixLocation, viewMatrixLocation, modelMatrixLocation, projectionAndViewMatrix;
 GLuint translationMatrixLocation, rotationMatrixLocation, scaleMatrixLocation;
 GLuint diffuceColorSampler, fireTexture;
-glm::vec3 slider_emitter_pos;
-
 
 // assimp model locations
-GLuint model_mat_location;
-GLuint view_mat_location;
-GLuint proj_mat_location;
 int bone_matrices_locations[MAX_BONES];
 
 // lighting 
@@ -164,6 +131,7 @@ GLuint lightNearPlaneLocation1;
 GLuint diffuseColorSampler; 
 GLuint specularColorSampler;
 GLuint useTextureLocation;
+GLuint useShadowsLocation;
 GLuint useSpecularTextureLocation;
 GLuint is_animation;
 
@@ -178,6 +146,7 @@ int health_tower1 = 10000;
 int health_tower2 = 10000;
 bool game = true;
 bool game_ends = false;
+int enable_shadows = 1;
 
 // lighting
 const Material yellow_plastic{
@@ -186,9 +155,6 @@ const Material yellow_plastic{
 	vec4{0.9,0.6,0.5,.25},
 	12.8f
 };
-
-
-glm::vec4 background_color = glm::vec4(0.5f, 0.5f, 0.5f, 0.0f);
 
 
 vector<package_ammo> ammo_packages;
@@ -212,6 +178,9 @@ void renderHelpingWindow(){
             ImGui::Text("robot %d: %s",robots[i]->team_tower,c);
         }
     }
+    if (enable_shadows==1) ImGui::Text("Press Z to disable shadows");
+    else ImGui::Text("Press Z to enable shadows");
+
     if (!game_ends){
         if (!game) ImGui::Text("Game Paused.");
         else ImGui::Text("Press P to pause the game.");
@@ -220,6 +189,8 @@ void renderHelpingWindow(){
         if (health_tower1<=0.0) ImGui::Text("TOWER 2 WINS");
         else ImGui::Text("TOWER 1 WINS");
     }
+    
+
     ImGui::Text("Performance %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
     
@@ -311,6 +282,7 @@ void createContext() {
 	specularColorSampler = glGetUniformLocation(lightingProgram, "specularColorSampler");
 
 	useTextureLocation = glGetUniformLocation(lightingProgram, "useTexture"); 
+    useShadowsLocation = glGetUniformLocation(lightingProgram, "useShadows"); 
     useSpecularTextureLocation = glGetUniformLocation(lightingProgram, "useSpecularTexture"); 
     is_animation = glGetUniformLocation(lightingProgram, "is_animation");
 
@@ -414,21 +386,21 @@ void createContext() {
     tower_diffuse_texture = loadSOIL("../Textures/Maps/Powergenorator_diffuse.png");
     
     // sun
-    model2 = new Drawable("../OBJ_files/sphere.obj");
+    model = new Drawable("../OBJ_files/sphere.obj");
 
 	std::vector<vec3> objNormals,objVertices;
 	std::vector<vec2> objUVs;
 	
-	for (int i=0; i<model2->indices.size(); i++){
-		objVertices.push_back(model2->vertices[i]);
+	for (int i=0; i<model->indices.size(); i++){
+		objVertices.push_back(model->vertices[i]);
 	}
-	for (int i=0; i<model2->normals.size(); i+=1){
-		objNormals.push_back(- model2->normals[i]);
+	for (int i=0; i<model->normals.size(); i+=1){
+		objNormals.push_back(- model->normals[i]);
 	}
-	for (int i=0; i<model2->uvs.size(); i++){
-		objUVs.push_back(model2->uvs[i]);
+	for (int i=0; i<model->uvs.size(); i++){
+		objUVs.push_back(model->uvs[i]);
 	}
-	model3 = new Drawable(objVertices,objUVs,objNormals);
+	sun = new Drawable(objVertices,objUVs,objNormals);
     sun_texture = loadSOIL("../Textures/2k_mars.jpg");
 
 
@@ -464,7 +436,7 @@ void createContext() {
 	};
 
     plane = new Drawable(floorVertices, floorUVs, floorNormals);
-    planetexture = loadSOIL("../Textures/grid/DALL·E 2023-01-22 18.51.45.png");
+    planetexture = loadSOIL("../Textures/grid/grid.png");
 
 
     // sphere
@@ -533,33 +505,33 @@ void createContext() {
     c_r_info = robots_info[0];
    
     
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
+    robot = new Robot("../OBJ_files/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
+    robot->loadTexture("../Textures/Texture_0.jpg");
     robots.push_back(robot);
 
     c_r_info = robots_info[1];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
+    robot = new Robot("../OBJ_files/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
+    robot->loadTexture("../Textures/Texture_0.jpg");
     robots.push_back(robot);
 
     c_r_info = robots_info[2];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
+    robot = new Robot("../OBJ_files/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower2_pos,1,c_r_info.maxspeed);
+    robot->loadTexture("../Textures/Texture_0.jpg");
     robots.push_back(robot);
 
     c_r_info = robots_info[3];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
+    robot = new Robot("../OBJ_files/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
+    robot->loadTexture("../Textures/Texture_0.jpg");
     robots.push_back(robot);
     
     c_r_info = robots_info[4];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
+    robot = new Robot("../OBJ_files/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
+    robot->loadTexture("../Textures/Texture_0.jpg");
     robots.push_back(robot);
 
     c_r_info = robots_info[5];
-    robot = new Robot("../Models/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
-    robot->loadTexture("../Models/Texture_0.jpg");
+    robot = new Robot("../OBJ_files/finale5.dae",c_r_info.position,c_r_info.vel,mass,tower1_pos,2,c_r_info.maxspeed);
+    robot->loadTexture("../Textures/Texture_0.jpg");
     robots.push_back(robot);
 
 
@@ -622,7 +594,7 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
 	// Making view and projection matrices uniform to the shader program
 	glUniformMatrix4fv(viewMatrixLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 	glUniformMatrix4fv(projectionMatrixLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
-
+    glUniform1i(useShadowsLocation, enable_shadows);
 	// uploading the light parameters to the shader program
 	
 	uploadLight(*light1,LaLocation1,LdLocation1,LsLocation1,lightPositionLocation1,lightPowerLocation1);
@@ -734,7 +706,7 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
 
     // ammo
     vec3 ammo_position;
-    size = 0.03;
+    size = 0.02;
     Scaling = glm::scale(mat4(), vec3(size,size,size));
     mat4 Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
     glActiveTexture(GL_TEXTURE5);
@@ -801,7 +773,8 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     rock->bind();
     rock->draw();
 
-    Scaling = glm::scale(mat4(), vec3(0.1, 0.1, 0.1));
+    // sun
+    Scaling = glm::scale(mat4(), vec3(0.15, 0.15, 0.15));
 	Translate = translate(mat4(), light1->lightPosition_worldspace);
 	mat4 modelMatrix3 = Translate * Scaling;
 	glUniformMatrix4fv(modelMatrixLocation, 1, GL_FALSE, &modelMatrix3[0][0]);
@@ -811,9 +784,93 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
 	glUniform1i(useTextureLocation, 1);
     glUniform1i(diffuseColorSampler, 8);
     glUniform1i(useSpecularTextureLocation, 0);
-	model3->bind();
-	model3->draw();
+	sun->bind();
+	sun->draw();
 }
+
+void depth_pass(mat4 viewMatrix, mat4 projectionMatrix,GLuint depthFrameBuffer,float t) {
+	// Task 3.3
+	//*/
+	// Setting viewport to shadow map size
+	glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+
+	// Binding the depth framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, depthFrameBuffer);
+
+	// Cleaning the framebuffer depth information (stored from the last render)
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	// Selecting the new shader program that will output the depth component
+	glUseProgram(depthProgram);
+
+	// sending the view and projection matrix to the shader
+	mat4 view_projection = projectionMatrix * viewMatrix;
+	glUniformMatrix4fv(shadowViewProjectionLocation, 1, GL_FALSE, &view_projection[0][0]);
+
+
+    // tower1
+    float size = 0.02f;
+    vec3 model_position = vec3(2.0f,0.0f,2.0f);
+    mat4 Scaling = glm::scale(mat4(), vec3(size,size,size));
+    mat4 Translate = glm::translate(mat4(), model_position);
+    mat4 Tower1ModelMatrix = Translate * Scaling;
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &Tower1ModelMatrix[0][0]);
+    tower->bind();
+    tower->draw();
+
+    // tower 2
+    size = 0.02f;
+    model_position = vec3(16.0f,0.0f,16.0f);
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    Translate = glm::translate(mat4(), model_position);
+    mat4 Tower2ModelMatrix = Translate * Scaling;
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &Tower2ModelMatrix[0][0]); 
+    tower->bind();
+    tower->draw();
+
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &first_aircraft->modelMatrix[0][0]);
+    first_aircraft->bind();
+    first_aircraft->draw();
+    
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &second_aircraft->modelMatrix[0][0]);
+    second_aircraft->bind();
+    second_aircraft->draw();
+
+    // rock
+    size = 0.01f;
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    Translate = glm::translate(mat4(), vec3(16.0f,0.0f,2.0f));
+    mat4 rockModelMatrix = Translate * Scaling;
+    glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &rockModelMatrix[0][0]);
+    rock->bind();
+    rock->draw();
+
+    // robots
+    for (int i=0; i<robots.size(); i++){
+        if (robots[i]->alive == true){
+            glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &robots[i]->modelMatrix[0][0]);
+            robots[i]->bind();
+            robots[i]->draw();
+        }
+    }
+
+    size = 0.02;
+    Scaling = glm::scale(mat4(), vec3(size,size,size));
+    mat4 Rotate = glm::rotate(mat4(), t*3.14f/5.0f, vec3(0.0f,1.0f,0.0f));
+    for (int i=0; i<ammo_packages.size(); i++){
+        Translate = glm::translate(mat4(),ammo_packages[i].position);
+        mat4 ammoModelMatrix = Translate * Rotate * Scaling;
+        glUniformMatrix4fv(shadowModelLocation, 1, GL_FALSE, &ammoModelMatrix[0][0]);
+        ammo->bind();
+        ammo->draw();
+    }
+
+	// binding the default framebuffer again
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//*/
+}
+
 
 void mainLoop() {
     IMGUI_CHECKVERSION();
@@ -847,8 +904,8 @@ void mainLoop() {
         temp_package_ammo.position = get_random_pos();
         temp_package_ammo.available = true;
         ammo_packages.push_back(temp_package_ammo);
-        cout<<ammo_packages.size()<<endl;
     }
+
     do {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable( GL_DEPTH_TEST );
@@ -856,8 +913,6 @@ void mainLoop() {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        glClearColor(background_color[0], background_color[1], background_color[2], background_color[3]);
-
         check_game();
 
         // float dt = glfwGetTime()-t;
@@ -868,6 +923,9 @@ void mainLoop() {
 			light_proj1 = light1->projectionMatrix;
 			light_view1 = light1->viewMatrix;
 		}
+
+        
+        if (enable_shadows==1) depth_pass(light_view1, light_proj1, depthFrameBuffer,t);
 
         camera->update();
         projectionMatrix = camera->projectionMatrix;
@@ -1059,7 +1117,7 @@ void initialize() {
 		vec4{ 1, 0.7, 0.7, 1 },
 		vec4{ 1, 0.7, 0.7, 1 },
 		vec4{ 1, 0.7, 0.7, 1 },
-		vec3{ 9, 4, 9 },
+		vec3{ 9, 8, 9 },
 		2.0f
 	);
 
@@ -1073,6 +1131,10 @@ void initialize() {
 void pollKeyboard(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_P && action == GLFW_PRESS && !game_ends) {
         game = !game;
+    }
+    if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
+        if (enable_shadows==1) enable_shadows = 0;
+        else enable_shadows=1;
     }
 }
 
