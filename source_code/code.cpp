@@ -74,6 +74,9 @@ struct Material {
 };
 
 
+// if you are using macOS please set this variable to true
+bool macos = false;
+
 // Global variables
 GLFWwindow* window;
 Camera* camera;
@@ -582,8 +585,8 @@ void lighting_pass(mat4 viewMatrix, mat4 projectionMatrix, float t, float dt){
     // Step 1: Binding a frame buffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
     
-	// glViewport(0, 0, W_WIDTH * 2, W_HEIGHT * 2); // for macos
-    glViewport(0, 0, W_WIDTH , W_HEIGHT );
+	if (macos) glViewport(0, 0, W_WIDTH * 2, W_HEIGHT * 2); // for macos
+    else glViewport(0, 0, W_WIDTH , W_HEIGHT );
 
 	// Step 2: Clearing color and depth info
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
